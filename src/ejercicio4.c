@@ -14,6 +14,7 @@ int main() {
         #pragma omp for
         for (int i = 0; i < n; i++) {
         // Modificacion de variables
+        //TODO atomic
         variable1 += i;
         variable2 += i;
         // Mostramos los valores de las variables en cada iteración

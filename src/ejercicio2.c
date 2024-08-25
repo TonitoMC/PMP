@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <omp.h>
-
+//TODO comment
 long long longSumParallel(long long n) {
     long long longSum = 0;
     #pragma omp parallel
