@@ -1,42 +1,24 @@
-# Laboratorio #5
+# Proyecto #2
 ## Ubicación de los Archivos
-- **src:** El código fuente escrito en C para los ejercicios del laboratorio
+- **src:** El código fuente escrito en C para una versión paralela y una versión secuencial del programa
 - **bin:** Los ejecutables resultantes de la compilación de los archivos
-- PDF del Lab en el directorio principal del repo
+- PDF del informe del proyecto en el directorio principal del repositorio
 ## Compilación y Corrida
-### Ejercicio 2:
+### Versión Paralela:
 Compilar a /bin
 ```
-gcc -fopenmp -o bin/ejercicio2 src/ejercicio2.c
+gcc -fopenmp -o bin/PSOParallel src/PSOParallel.c
 ```
 Correr de /bin
 ```
-./bin/ejercicio2
+./bin/PSOParallel
 ```
-### Ejercicio 3:
+### Versión Secuencial:
 Compilar a /bin
 ```
-gcc -fopenmp -o bin/ejercicio2 src/ejercicio3.c
+gcc -fopenmp -o bin/PSOSequential src/PSOSequential.c
 ```
 Correr de /bin
 ```
-./bin/ejercicio3
-```
-### Ejercicio 4:
-Compilar a /bin
-```
-gcc -fopenmp -o bin/ejercicio4 src/ejercicio4.c
-```
-Correr de /bin
-```
-./bin/ejercicio4
-```
-### Ejercicio 5:
-Compilar a /bin
-```
-gcc -fopenmp -o bin/ejercicio5 src/ejercicio5.c
-```
-Correr de /bin
-```
-./bin/ejercicio5
+./bin/PSOSequential
 ```
