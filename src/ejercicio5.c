@@ -58,7 +58,7 @@ int main() {
 
     // Calcular la profundidad máxima para la creación de tareas paralelas
     // basado en la cantidad de hilos disponibles y la profundidad a la que
-    // se deben crear las tareas para tener el numero exacto de tareas e hilos
+    // se deben crear las tareas para tener el numero exacto de tareas e hilos.
     int max_depth = 0;
     while ((1 << max_depth) < max_threads) max_depth++;
 
@@ -74,7 +74,8 @@ int main() {
 
     // Imprime el numero de veces que aparece key
     printf("Numero de veces que 'key' aparece: %ld\n", nkey);
-    printf("Tareas de Conteo Realizadas: %d", taskCount);
+    printf("Tareas de Conteo Realizadas: %d\n", taskCount);
+    printf("Numero de hilos: %d", omp_get_max_threads());
 
     return 0;
 }

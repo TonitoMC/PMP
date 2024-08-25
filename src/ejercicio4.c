@@ -14,8 +14,9 @@ int main() {
         #pragma omp for
         for (int i = 0; i < n; i++) {
         // Modificacion de variables
-        //TODO atomic
-        variable1 += i;
+        #pragma omp atomic
+        variable1 += i; //Variable1 Atomic para evitar comportamientos no deseados al ser compartida
+
         variable2 += i;
         // Mostramos los valores de las variables en cada iteración
         printf("Thread %d, iter %d: variable1 = %d, variable2 = %d\n", omp_get_thread_num(), i, variable1, variable2);
