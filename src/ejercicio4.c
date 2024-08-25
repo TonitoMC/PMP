@@ -10,13 +10,12 @@ int main() {
     // Inicializacion region paralela con variable1 compartida y variable2 privada
     #pragma omp parallel shared(variable1) private(variable2)
     {
-        variable2 = 0;
+        variable2 = 0; // Declaramos variable2 dentro de la región paralela
         #pragma omp for
         for (int i = 0; i < n; i++) {
         // Modificacion de variables
         variable1 += i;
         variable2 += i;
-
         // Mostramos los valores de las variables en cada iteración
         printf("Thread %d, iter %d: variable1 = %d, variable2 = %d\n", omp_get_thread_num(), i, variable1, variable2);
     }

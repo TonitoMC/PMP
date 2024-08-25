@@ -76,7 +76,7 @@ int main(){
                 double start_time = omp_get_wtime();
                 int prime_count = count_primes(1750000);
                 double end_time = omp_get_wtime();
-                printf("Numeros Primos Menores a 1000000 %d, Thread: %d. Tiempo: %f\n", prime_count, omp_get_thread_num(), end_time - start_time);
+                printf("Numeros Primos Menores a 1750000 %d, Thread: %d. Tiempo: %f\n", prime_count, omp_get_thread_num(), end_time - start_time);
             }
             // Tercera seccion, estimacion de pi con Montecarlo con 17,500,000 muestras
             #pragma omp section
@@ -85,7 +85,7 @@ int main(){
                 double start_time = omp_get_wtime();
                 double pi = monte_carlo_pi(17500000);
                 double end_time = omp_get_wtime();
-                printf("Pi Usando Montecarlo (1000000 muestras): %f, Thread: %d. Tiempo: %f\n", pi, omp_get_thread_num(), end_time - start_time);
+                printf("Pi Usando Montecarlo (17500000 muestras): %f, Thread: %d. Tiempo: %f\n", pi, omp_get_thread_num(), end_time - start_time);
             }
         }
         // Cada region lleva a cabo los calculos en un thread y se sincronizan implicitamente en este punto
