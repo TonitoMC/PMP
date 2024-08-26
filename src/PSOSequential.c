@@ -13,15 +13,16 @@ de manera secuencial.
 #include <stdlib.h>
 #include <omp.h>
 #include <math.h>
+#define W 0.5
+#define C1 1.5
+#define C2 1.5
 
-#define W 0.25
-#define C1 0.5
-#define C2 0.5
 
 
-// Función que buscamos optimizar
-double f(double x, double y){
-    return (x - 2) * (x - 2) + (y - 3) * (y - 3);
+double f(double x, double y) {
+    double term1 = -20.0 * exp(-0.2 * sqrt(0.5 * (x * x + y * y)));
+    double term2 = -exp(0.5 * (cos(2.0 * M_PI * x) + cos(2.0 * M_PI * y)));
+    return term1 + term2 + 20.0 + M_E;
 }
 
 // Struct para organizar las coordenadas
@@ -68,7 +69,7 @@ double update(struct Particle *p, struct Coords *globalBestCoords, double *globa
 
 int main() {
     double start = omp_get_wtime();
-    struct Particle particles[40];
+    struct Particle particles[1000];
     struct Coords globalBestCoords;
 
     globalBestCoords.x = 0.0;
@@ -76,25 +77,25 @@ int main() {
 
     double globalBestFitness = INFINITY;
 
-    for (int i = 0; i < 40; i++){
+    for (int i = 0; i < 1000; i++){
 
-        particles[i].vx = (double) rand() / RAND_MAX * 20 - 10;
-        particles[i].vy = (double) rand() / RAND_MAX * 20 - 10;
+        particles[i].vx = (double) rand() / RAND_MAX * 64 - 32;
+        particles[i].vy = (double) rand() / RAND_MAX * 64 - 32;
 
-        particles[i].currentCoords.x = (double) rand() / RAND_MAX * 20 - 10;
-        particles[i].currentCoords.y = (double) rand() / RAND_MAX * 20 - 10;
+        particles[i].currentCoords.x = (double) rand() / RAND_MAX * 64 - 32;
+        particles[i].currentCoords.y = (double) rand() / RAND_MAX * 64 - 32;
 
         particles[i].bestFitness = INFINITY;
 
         particles[i].bestCoords.x = 0;
         particles[i].bestCoords.y = 0;
     }
-    for (int i = 0; i < 40; i++){
-        printf("Particula: %d, Vx: %f, Vy: %f\n", i, particles[i].vx, particles[i].vy);
-    }
-    for (int i = 0; i < 100; i++){
-        for (int i = 0; i < 40; i++){
-        update(&particles[i], &globalBestCoords, &globalBestFitness);
+    //for (int i = 0; i < 1000; i++){
+    //    printf("Particula: %d, Vx: %f, Vy: %f\n", i, particles[i].vx, particles[i].vy);
+    //}
+    for (int i = 0; i < 1000; i++){
+        for (int j = 0; j < 1000; j++){
+        update(&particles[j], &globalBestCoords, &globalBestFitness);
         }
     }
     double end = omp_get_wtime();
