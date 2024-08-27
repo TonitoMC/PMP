@@ -55,7 +55,7 @@ void update(struct Particle *p, struct Coords *globalBestCoords, double *globalB
         p->bestCoords = p->currentCoords;
     }
 }
-
+// TODO verify variable creation, etc.
 int main() {
     double start = omp_get_wtime();
     struct Particle particles[1000];
@@ -101,7 +101,6 @@ int main() {
                     globalBestFitness = threadBestFitness;
                     globalBestCoords = threadBestCoords;
                 }
-                //printf("Iteration %d: Best Coords: (%.15f, %.15f), Best Fitness: %f\n", i, globalBestCoords.x, globalBestCoords.y, globalBestFitness);
             }
         }
     }

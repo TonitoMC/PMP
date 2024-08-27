@@ -43,7 +43,7 @@ double fitness(struct Particle *p){
 };
 
 // Actualiza la posición de una particula y compara si existe un 
-double update(struct Particle *p, struct Coords *globalBestCoords, double *globalBestFitness){
+double update(struct Particle *p, struct Coords *globalBestCoords, double *globalBestFitness, struct Coords *iterationBestCoords, double *iterationBestFitness){
     // Crea variables aleatorias entre 0 y 1 para la actualización
     double r1 = (double) rand() / RAND_MAX;
     double r2 = (double) rand() / RAND_MAX;
@@ -60,9 +60,9 @@ double update(struct Particle *p, struct Coords *globalBestCoords, double *globa
     if (currentFitness < p->bestFitness){
         p->bestFitness = currentFitness;
         p->bestCoords = p->currentCoords;
-        if (currentFitness < *globalBestFitness){
-            *globalBestFitness = currentFitness;
-            *globalBestCoords = p->currentCoords;
+        if (currentFitness < *iterationBestFitness){
+            *iterationBestFitness = currentFitness;
+            *iterationBestCoords = p->currentCoords;
         }
     }
 }
@@ -92,9 +92,13 @@ int main() {
         particles[i].bestCoords.y = 0;
     }
     for (int i = 0; i < 100; i++){
+        double iterationBestFitness = globalBestFitness;
+        struct Coords iterationBestCoords = globalBestCoords;
         for (int j = 0; j < 1000; j++){
-            update(&particles[j], &globalBestCoords, &globalBestFitness);
+            update(&particles[j], &globalBestCoords, &globalBestFitness, &iterationBestCoords, &iterationBestFitness);
         }
+        globalBestCoords = iterationBestCoords;
+        globalBestFitness = iterationBestFitness;
     }
     double totalDistance = 0.0;
     for(int i = 0; i < 1000; i++){

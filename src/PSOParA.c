@@ -69,8 +69,9 @@ void update(struct Particle *p, struct Coords *globalBestCoords, double *globalB
     if (currentFitness < p->bestFitness){
         p->bestFitness = currentFitness;
         p->bestCoords = p->currentCoords;
-        // Se compara con la mejor posición global en caso que deba ser actualizada
+        // Se compara con la mejor posición global antes de entrar a critical, para evitar saturación
         if (currentFitness < *globalBestFitness){
+            // 
             #pragma omp critical
             {
                 if (currentFitness < *globalBestFitness){
@@ -130,13 +131,17 @@ int main() {
     {
         // Llevando a cabo el número de iteraciones
         for (int i = 0; i < 100; i++) {
+            // Designamos un 'subenjambre' a cada hilo y continuamos las iteraciones
+            // sin realizar alguna espera a sincronización. Las variables globales
+            // se actualizan cada vez que se encuentre un mejor valor
             #pragma omp for nowait
             for (int j = 0; j < 1000; j++) {
                 update(&particles[j], &globalBestCoords, &globalBestFitness);
             }
         }
     }
-
+    // TODO paralelizar
+    // Calculo de la distancia promedio de todas las partículas respecto a la mejor posición encontrada
     double totalDistance = 0;
     for (int i = 0; i < 1000; i++) {
         double distanceFromBest = sqrt(pow(globalBestCoords.x - particles[i].currentCoords.x, 2) 
