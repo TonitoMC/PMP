@@ -93,7 +93,7 @@ int main() {
     }
     for (int i = 0; i < 100; i++){
         for (int j = 0; j < 1000; j++){
-        update(&particles[j], &globalBestCoords, &globalBestFitness);
+            update(&particles[j], &globalBestCoords, &globalBestFitness);
         }
     }
     double totalDistance = 0.0;

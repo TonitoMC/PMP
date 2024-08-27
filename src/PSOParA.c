@@ -10,113 +10,129 @@ ejecutado en paralelo utilizando la librería OpenMP.
 -------------------------------------------------------------
 */
 #define _USE_MATH_DEFINES
+#define _CRT_RAND_S
 #include <stdio.h>
 #include <stdlib.h>
 #include <omp.h>
 #include <math.h>
-#define W 0.5
-#define C1 1.5
-#define C2 1.5
 
+// Parámetros constantes de la simulación
+#define W 0.5   // Inercia, tendencia de la partícula a seguir en movimiento
+#define C1 1.5  // Factor personal
+#define C2 1.5  // Factor social
+
+// Calcula el valor de la función que deseamos minimzar (función Ackley)
 double f(double x, double y) {
     double term1 = -20.0 * exp(-0.2 * sqrt(0.5 * (x * x + y * y)));
     double term2 = -exp(0.5 * (cos(2.0 * M_PI * x) + cos(2.0 * M_PI * y)));
     return term1 + term2 + 20.0 + M_E;
 }
 
+// Estructura para representar coordenadas con precisión Double
 struct Coords {
     double x, y;
 };
 
+// Estructura para representar una partícula
 struct Particle {
-    double vx, vy, bestFitness;
-    struct Coords currentCoords, bestCoords;
+    double vx, vy, bestFitness; // Velocidades y Mejor Fitness (Menor valor de la función evaluada)
+    struct Coords currentCoords, bestCoords; // Mejores coordenadas y coordenadas en las que se encuentra
 };
 
+// Evaluación del fitness correspondiente a las coordenadas actuales de una partícula p
 double fitness(struct Particle *p) {
     return f(p->currentCoords.x, p->currentCoords.y);
 }
 
+// Función de actualización de una partícula, se corre una vez por iteración
 void update(struct Particle *p, struct Coords *globalBestCoords, double *globalBestFitness) {
-    double r1 = (double) rand() / RAND_MAX;
-    double r2 = (double) rand() / RAND_MAX;
+    unsigned int r1, r2;
+    rand_s(&r1); // Generate a random number
+    rand_s(&r2); // Generate another random number
 
-    p->vx = W * p->vx + C1 * r1 * (p->bestCoords.x - p->currentCoords.x) + C2 * r2 * (globalBestCoords->x - p->currentCoords.x);
-    p->vy = W * p->vy + C1 * r1 * (p->bestCoords.y - p->currentCoords.y) + C2 * r2 * (globalBestCoords->y - p->currentCoords.y);
+    // Convert to double in the range [0, 1]
+    double dr1 = (double) r1 / UINT_MAX;
+    double dr2 = (double) r2 / UINT_MAX;
 
+    // Actualización de la velocidad en X para la partícula según la fórmula
+    p->vx = W * p->vx + C1 * dr1 * (p->bestCoords.x - p->currentCoords.x) + C2 * dr2 * (globalBestCoords->x - p->currentCoords.x);
+    // Actualización de las velocidad en Y para la partícula según la fórmula
+    p->vy = W * p->vy + C1 * dr1 * (p->bestCoords.y - p->currentCoords.y) + C2 * dr2 * (globalBestCoords->y - p->currentCoords.y);
+
+    // Se actualiza la posición de la partícula en ambos ejes
     p->currentCoords.x += p->vx;
     p->currentCoords.y += p->vy;
 
+    // Cálculo de fitness de la función
     double currentFitness = fitness(p);
-    if (currentFitness < p->bestFitness) {
+    // Se actualiza en caso que se haya encontrado una mejor posición
+    if (currentFitness < p->bestFitness){
         p->bestFitness = currentFitness;
         p->bestCoords = p->currentCoords;
+        // Se compara con la mejor posición global en caso que deba ser actualizada
+        if (currentFitness < *globalBestFitness){
+            #pragma omp critical
+            {
+                if (currentFitness < *globalBestFitness){
+                    *globalBestFitness = currentFitness;
+                    *globalBestCoords = p->currentCoords;
+                    printf("Nuevo mejor Fitness: %f, encontrado por hilo: %d\n", currentFitness, omp_get_thread_num());
+                }
+            }
+        }
     }
 }
 
-// Actualiza la posición de una particula y compara si existe un 
-long double update(struct Particle *p, struct Coords globalBestCoords){
-    // Crea variables aleatorias entre 0 y 1 para la actualización
-    long double r1 = (long double) rand() / RAND_MAX;
-    long double r2 = (long double) rand() / RAND_MAX;
-     
-    // Actualizamos la velocidad en cada eje conforme las formulas
-    p->vx = W * C1 * r1 * (p->bestCoords.x - p->currentCoords.x) + C2 * r2 * (globalBestCoords.x - p->currentCoords.x);
-    p->vy = W * C1 * r1 * (p->bestCoords.y - p->currentCoords.y) + C2 * r2 * (globalBestCoords.y - p->currentCoords.y);
-
-    // Sumamos la velocidad a las posiciones en cada eje para movernos a un nuevo punto
-    p->currentCoords.x += p->vx;
-    p->currentCoords.y += p->vy;
-
-    
-
-}
 int main() {
-    double start = omp_get_wtime();
-    struct Particle particles[1000];
-    struct Coords globalBestCoords;
+    // Inicialización de Variables
+    double start = omp_get_wtime();     // Tiempo de Inicio
+    struct Particle particles[1000];    // Array dónde se almacenan las partículas
+    struct Coords globalBestCoords;     // Las mejores coordenadas
 
+    // Inicializamos en 0, este puede ser cualquier valor ya que independientemente
+    // se actualizará en la primera partícula que se evalúe
     globalBestCoords.x = 0.0;
     globalBestCoords.y = 0.0;
 
+    // Ya que buscamos minimizar, el fitness inicial es infinito para que se actualice
+    // en la primera partícula evaluada
     double globalBestFitness = INFINITY;
 
+    // Sección paralela para la inicialización de partículas
     #pragma omp parallel for
     for (int i = 0; i < 1000; i++) {
-        particles[i].vx = (double) rand() / RAND_MAX * 64 - 32;
-        particles[i].vy = (double) rand() / RAND_MAX * 64 - 32;
+        unsigned int r1, r2, r3, r4, r5, r6;
+        rand_s(&r1);
+        rand_s(&r2);
+        rand_s(&r3);
+        rand_s(&r4);
+        rand_s(&r5);
+        rand_s(&r6);
 
-        particles[i].currentCoords.x = (double) rand() / RAND_MAX * 64 - 32;
-        particles[i].currentCoords.y = (double) rand() / RAND_MAX * 64 - 32;
+        // Velocidades iniciales
+        particles[i].vx = (double) r1 / UINT_MAX * 64 - 32;
+        particles[i].vy = (double) r2 / UINT_MAX * 64 - 32;
 
+        // Posiciones iniciales en el intervalo [-32,32]
+        particles[i].currentCoords.x = (double) r3 / UINT_MAX * 64 - 32;
+        particles[i].currentCoords.y = (double) r4 / UINT_MAX * 64 - 32;
+
+        // Fitness inicial en infinito, para que se actualice en la primera iteración
         particles[i].bestFitness = INFINITY;
 
+        // Inicialización de coordenadas, estos valores se actualizarán en la primera iteración
         particles[i].bestCoords.x = 0;
         particles[i].bestCoords.y = 0;
     }
 
-    double threadBestFitness = globalBestFitness;
-    struct Coords threadBestCoords = globalBestCoords;
-
-    #pragma omp parallel private(threadBestCoords) reduction(min: threadBestFitness)
+    // Creamos una nueva región paralela
+    #pragma omp parallel
     {
-
-
+        // Llevando a cabo el número de iteraciones
         for (int i = 0; i < 100; i++) {
-            threadBestCoords = globalBestCoords;
-            threadBestFitness = globalBestFitness;
-            #pragma omp for
+            #pragma omp for nowait
             for (int j = 0; j < 1000; j++) {
-                update(&particles[j], &threadBestCoords, &threadBestFitness);
-            }
-
-            #pragma omp critical
-            {
-                if (threadBestFitness < globalBestFitness) {
-                    globalBestFitness = threadBestFitness;
-                    globalBestCoords = threadBestCoords;
-                }
-                //printf("Iteration %d: Best Coords: (%.15f, %.15f), Best Fitness: %f\n", i, globalBestCoords.x, globalBestCoords.y, globalBestFitness);
+                update(&particles[j], &globalBestCoords, &globalBestFitness);
             }
         }
     }
