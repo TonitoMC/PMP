@@ -18,9 +18,11 @@ ejecutado en paralelo utilizando la librería OpenMP.
 #include <math.h>
 
 // Parámetros constantes de la simulación
-#define W 0.5   // Inercia, tendencia de la partícula a seguir en movimiento
-#define C1 1.5  // Factor personal
-#define C2 1.5  // Factor social
+#define W 0.5               // Inercia, tendencia de la partícula a seguir en movimiento
+#define C1 1.5              // Factor personal
+#define C2 1.5              // Factor social
+#define NUM_ITERS 100       // Numero de iteraciones
+#define NUM_PARTICLES 1000  // Numero de Particulas
 
 // Calcula el valor de la función que deseamos minimzar (función Ackley)
 double f(double x, double y) {
@@ -73,7 +75,7 @@ double update(struct Particle *p, struct Coords *globalBestCoords, double *globa
 
 int main() {
     double start = omp_get_wtime();
-    struct Particle particles[1000];
+    struct Particle particles[NUM_PARTICLES];
     struct Coords globalBestCoords;
 
     globalBestCoords.x = 0.0;
@@ -82,7 +84,7 @@ int main() {
     double globalBestFitness = INFINITY;
 
     #pragma omp parallel for
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < NUM_PARTICLES; i++) {
         unsigned int r1, r2, r3, r4, r5, r6;
         rand_s(&r1);
         rand_s(&r2);
@@ -112,11 +114,11 @@ int main() {
 
     #pragma omp parallel 
     {
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < NUM_ITERS; i++) {
             iterationBestCoords = globalBestCoords;
             iterationBestFitness = globalBestFitness;
             #pragma omp for private(iterationBestCoords)
-            for (int j = 0; j < 1000; j++) {
+            for (int j = 0; j < NUM_PARTICLES; j++) {
                 update(&particles[j], &globalBestCoords, &globalBestFitness, &iterationBestCoords, &iterationBestFitness);
             }
             {
@@ -136,13 +138,13 @@ int main() {
 
     double totalDistance = 0;
     #pragma omp parallel for reduction(+:totalDistance)
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < NUM_PARTICLES; i++) {
         double distanceFromBest = sqrt(pow(globalBestCoords.x - particles[i].currentCoords.x, 2) 
                                     + pow(globalBestCoords.y - particles[i].currentCoords.y, 2));
         totalDistance += distanceFromBest;
     }
 
     double end = omp_get_wtime();
-    printf("%.15f, %.15f, %f, Distancia Promedio: %.15f", globalBestCoords.x, globalBestCoords.y, end - start, totalDistance / 1000);
+    printf("Mejores Coordenadas: (%.15f, %.15f),Tiempo de Corrida %f, Distancia Promedio: %.15f", globalBestCoords.x, globalBestCoords.y, end - start, totalDistance / NUM_PARTICLES);
     return 0;
 }
