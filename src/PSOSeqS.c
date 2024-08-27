@@ -10,37 +10,39 @@ ejecutado de manera secuencial.
 -------------------------------------------------------------
 */
 #define _USE_MATH_DEFINES
+#define _CRT_RAND_S
 #include <stdio.h>
 #include <stdlib.h>
 #include <omp.h>
 #include <math.h>
-#define W 0.5
-#define C1 1.5
-#define C2 1.5
 
+// Parámetros constantes de la simulación
+#define W 0.5   // Inercia, tendencia de la partícula a seguir en movimiento
+#define C1 1.5  // Factor personal
+#define C2 1.5  // Factor social
 
-
+// Calcula el valor de la función que deseamos minimzar (función Ackley)
 double f(double x, double y) {
     double term1 = -20.0 * exp(-0.2 * sqrt(0.5 * (x * x + y * y)));
     double term2 = -exp(0.5 * (cos(2.0 * M_PI * x) + cos(2.0 * M_PI * y)));
     return term1 + term2 + 20.0 + M_E;
 }
 
-// Struct para organizar las coordenadas
-struct Coords{
+// Estructura para representar coordenadas con precisión Double
+struct Coords {
     double x, y;
 };
 
-// Struct para manejar las partículas
-struct Particle{
-    double vx, vy, bestFitness;
-    struct Coords currentCoords, bestCoords;
+// Estructura para representar una partícula
+struct Particle {
+    double vx, vy, bestFitness; // Velocidades y Mejor Fitness (Menor valor de la función evaluada)
+    struct Coords currentCoords, bestCoords; // Mejores coordenadas y coordenadas en las que se encuentra
 };
 
-// Evaluación de fitness (aptitud) de una partícula
-double fitness(struct Particle *p){
+// Evaluación del fitness correspondiente a las coordenadas actuales de una partícula p
+double fitness(struct Particle *p) {
     return f(p->currentCoords.x, p->currentCoords.y);
-};
+}
 
 // Actualiza la posición de una particula y compara si existe un 
 double update(struct Particle *p, struct Coords *globalBestCoords, double *globalBestFitness, struct Coords *iterationBestCoords, double *iterationBestFitness){
