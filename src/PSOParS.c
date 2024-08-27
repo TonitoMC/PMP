@@ -70,7 +70,7 @@ double update(struct Particle *p, struct Coords *globalBestCoords, double *globa
             }
     }
 }
-// TODO verify variable creation, etc.
+
 int main() {
     double start = omp_get_wtime();
     struct Particle particles[1000];
@@ -126,6 +126,7 @@ int main() {
                     if (iterationBestFitness < globalBestFitness) {
                         globalBestFitness = iterationBestFitness;
                         globalBestCoords = iterationBestCoords;
+                        printf("Nuevo Mejor Fitness: %.15f, encontrado por hilo: %d. Iter: %d\n", globalBestFitness, omp_get_thread_num(), i);
                     }
                 }
             }
@@ -134,6 +135,7 @@ int main() {
     }
 
     double totalDistance = 0;
+    #pragma omp parallel for reduction(+:totalDistance)
     for (int i = 0; i < 1000; i++) {
         double distanceFromBest = sqrt(pow(globalBestCoords.x - particles[i].currentCoords.x, 2) 
                                     + pow(globalBestCoords.y - particles[i].currentCoords.y, 2));

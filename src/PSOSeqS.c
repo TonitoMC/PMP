@@ -99,8 +99,11 @@ int main() {
         for (int j = 0; j < 1000; j++){
             update(&particles[j], &globalBestCoords, &globalBestFitness, &iterationBestCoords, &iterationBestFitness);
         }
-        globalBestCoords = iterationBestCoords;
-        globalBestFitness = iterationBestFitness;
+        if (iterationBestFitness < globalBestFitness){
+            globalBestCoords = iterationBestCoords;
+            globalBestFitness = iterationBestFitness;
+            printf("Nuevo Mejor Fitness: %.15f, encontrado por hilo: %d. Iter: %d\n", globalBestFitness, omp_get_thread_num(), i);
+        }
     }
     double totalDistance = 0.0;
     for(int i = 0; i < 1000; i++){

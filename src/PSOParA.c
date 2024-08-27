@@ -140,9 +140,9 @@ int main() {
             }
         }
     }
-    // TODO paralelizar
     // Calculo de la distancia promedio de todas las partículas respecto a la mejor posición encontrada
     double totalDistance = 0;
+    #pragma omp parallel for reduction(+:totalDistance)
     for (int i = 0; i < 1000; i++) {
         double distanceFromBest = sqrt(pow(globalBestCoords.x - particles[i].currentCoords.x, 2) 
                                     + pow(globalBestCoords.y - particles[i].currentCoords.y, 2));
