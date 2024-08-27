@@ -64,16 +64,13 @@ double update(struct Particle *p, struct Coords *globalBestCoords, double *globa
     if (currentFitness < p->bestFitness){
         p->bestFitness = currentFitness;
         p->bestCoords = p->currentCoords;
-        if (currentFitness < *iterationBestFitness){
-            #pragma omp critical
             if (currentFitness < *iterationBestFitness){
                 *iterationBestFitness = currentFitness;
                 *iterationBestCoords = p->currentCoords;
             }
-        }
     }
 }
-
+// TODO verify variable creation, etc.
 int main() {
     double start = omp_get_wtime();
     struct Particle particles[1000];
@@ -116,19 +113,15 @@ int main() {
     #pragma omp parallel 
     {
         for (int i = 0; i < 100; i++) {
-            #pragma omp single
-            {
-                iterationBestCoords = globalBestCoords;
-                iterationBestFitness = globalBestFitness;
-            }
-            #pragma omp for
+            iterationBestCoords = globalBestCoords;
+            iterationBestFitness = globalBestFitness;
+            #pragma omp for private(iterationBestCoords)
             for (int j = 0; j < 1000; j++) {
                 update(&particles[j], &globalBestCoords, &globalBestFitness, &iterationBestCoords, &iterationBestFitness);
             }
-            #pragma omp taskwait
-            #pragma omp single
             {
             if (iterationBestFitness < globalBestFitness){
+                #pragma omp critical
                 {
                     if (iterationBestFitness < globalBestFitness) {
                         globalBestFitness = iterationBestFitness;
@@ -141,7 +134,6 @@ int main() {
     }
 
     double totalDistance = 0;
-    #pragma omp parallel for
     for (int i = 0; i < 1000; i++) {
         double distanceFromBest = sqrt(pow(globalBestCoords.x - particles[i].currentCoords.x, 2) 
                                     + pow(globalBestCoords.y - particles[i].currentCoords.y, 2));
