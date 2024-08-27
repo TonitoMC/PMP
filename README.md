@@ -4,21 +4,39 @@
 - **bin:** Los ejecutables resultantes de la compilación de los archivos
 - PDF del informe del proyecto en el directorio principal del repositorio
 ## Compilación y Corrida
-### Versión Paralela:
+### Versión Secuencial Síncrona:
 Compilar a /bin
 ```
-gcc -fopenmp -o bin/PSOParallel src/PSOParallel.c
+gcc -fopenmp -o bin/PSOSeqS src/PSOSeqS.c
 ```
 Correr de /bin
 ```
-./bin/PSOParallel
+./bin/PSOSeqS
 ```
-### Versión Secuencial:
+### Versión Paralela Síncrona:
 Compilar a /bin
 ```
-gcc -fopenmp -o bin/PSOSequential src/PSOSequential.c
+gcc -fopenmp -o bin/PSOParS src/PSOParS.c
 ```
 Correr de /bin
 ```
-./bin/PSOSequential
+./bin/PSOParS
+```
+### Versión Secuencial Asíncrona:
+Compilar a /bin
+```
+gcc -fopenmp -o bin/PSOSeqA src/PSOSeqA.c
+```
+Correr de /bin
+```
+./bin/PSOSeqA
+```
+### Versión Paralela Asíncrona:
+Compilar a /bin
+```
+gcc -fopenmp -o bin/PSOParA src/PSOParA.c
+```
+Correr de /bin
+```
+./bin/PSOParA
 ```

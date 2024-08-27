@@ -1,4 +1,15 @@
 
+/*
+-------------------------------------------------------------
+PSOParS.c
+-------------------------------------------------------------
+UNIVERSIDAD DEL VALLE DE GUATEMALA
+CC3086 - Programacion de Microprocesadores
+-------------------------------------------------------------
+Algoritmo de optimización por enjambre de partículas síncrono
+ejecutado en paralelo utilizando la librería OpenMP. 
+-------------------------------------------------------------
+*/
 #define _USE_MATH_DEFINES
 #include <stdio.h>
 #include <stdlib.h>

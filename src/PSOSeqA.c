@@ -1,12 +1,12 @@
 /*
 -------------------------------------------------------------
-PSOSequential.c
+PSOSeqA.c
 -------------------------------------------------------------
 UNIVERSIDAD DEL VALLE DE GUATEMALA
 CC3086 - Programacion de Microprocesadores
 -------------------------------------------------------------
-Algoritmo de optimización por enjambre de partículas, ejecutado
-de manera secuencial.
+Algoritmo de optimización por enjambre de partículas asíncrono
+ejecutado de manera secuencial.
 -------------------------------------------------------------
 */
 #define _USE_MATH_DEFINES

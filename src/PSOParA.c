@@ -1,12 +1,12 @@
 /*
 -------------------------------------------------------------
-PSOParallel.c
+PSOParA.c
 -------------------------------------------------------------
 UNIVERSIDAD DEL VALLE DE GUATEMALA
 CC3086 - Programacion de Microprocesadores
 -------------------------------------------------------------
-Algoritmo de optimización por enjambre de partículas, ejecutado
-en paralelo utilizando la librería OpenMP. 
+Algoritmo de optimización por enjambre de partículas asíncrono
+ejecutado en paralelo utilizando la librería OpenMP. 
 -------------------------------------------------------------
 */
 #define _USE_MATH_DEFINES
