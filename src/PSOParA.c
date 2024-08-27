@@ -48,11 +48,10 @@ double fitness(struct Particle *p) {
 
 // Función de actualización de una partícula, se corre una vez por iteración
 void update(struct Particle *p, struct Coords *globalBestCoords, double *globalBestFitness) {
+    // Generacion de variables aleatorias
     unsigned int r1, r2;
-    rand_s(&r1); // Generate a random number
-    rand_s(&r2); // Generate another random number
-
-    // Convert to double in the range [0, 1]
+    rand_s(&r1);
+    rand_s(&r2);
     double dr1 = (double) r1 / UINT_MAX;
     double dr2 = (double) r2 / UINT_MAX;
 
@@ -73,9 +72,10 @@ void update(struct Particle *p, struct Coords *globalBestCoords, double *globalB
         p->bestCoords = p->currentCoords;
         // Se compara con la mejor posición global antes de entrar a critical, para evitar saturación
         if (currentFitness < *globalBestFitness){
-            // 
+            // Sección critica para aseugrarnos que solamente un hilo pueda modificar la variable a la vez
             #pragma omp critical
             {
+                // De encontrar una mejor coordenada se actualizan las variables globales
                 if (currentFitness < *globalBestFitness){
                     *globalBestFitness = currentFitness;
                     *globalBestCoords = p->currentCoords;

@@ -50,30 +50,36 @@ double fitness(struct Particle *p) {
 // Función de actualización de una partícula, se corre una vez por iteración
 // Actualiza la posición de una particula y compara si existe un 
 double update(struct Particle *p, struct Coords *globalBestCoords, double *globalBestFitness, struct Coords *iterationBestCoords, double *iterationBestFitness){
-    // Crea variables aleatorias entre 0 y 1 para la actualización
-    double r1 = (double) rand() / RAND_MAX;
-    double r2 = (double) rand() / RAND_MAX;
+    // Generacion de variables aleatorias
+    unsigned int r1, r2;
+    rand_s(&r1);
+    rand_s(&r2);
+    double dr1 = (double) r1 / UINT_MAX;
+    double dr2 = (double) r2 / UINT_MAX;
      
     // Actualizamos la velocidad en cada eje conforme las formulas
-    p->vx = W * p->vx + C1 * r1 * (p->bestCoords.x - p->currentCoords.x) + C2 * r2 * (globalBestCoords->x - p->currentCoords.x);
-    p->vy = W * p->vy + C1 * r1 * (p->bestCoords.y - p->currentCoords.y) + C2 * r2 * (globalBestCoords->y - p->currentCoords.y);
+    p->vx = W * p->vx + C1 * dr1 * (p->bestCoords.x - p->currentCoords.x) + C2 * dr2 * (globalBestCoords->x - p->currentCoords.x);
+    p->vy = W * p->vy + C1 * dr1 * (p->bestCoords.y - p->currentCoords.y) + C2 * dr2 * (globalBestCoords->y - p->currentCoords.y);
 
     // Sumamos la velocidad a las posiciones en cada eje para movernos a un nuevo punto
     p->currentCoords.x += p->vx;
     p->currentCoords.y += p->vy;
 
+    // Actualizamos fitness actual
     double currentFitness = fitness(p);
     if (currentFitness < p->bestFitness){
         p->bestFitness = currentFitness;
         p->bestCoords = p->currentCoords;
-            if (currentFitness < *iterationBestFitness){
-                *iterationBestFitness = currentFitness;
-                *iterationBestCoords = p->currentCoords;
-            }
+        // Actualizamos variables de iteracion
+        if (currentFitness < *iterationBestFitness){
+            *iterationBestFitness = currentFitness;
+            *iterationBestCoords = p->currentCoords;
+        }
     }
 }
 
 int main() {
+    // Inicializacion de variables
     double start = omp_get_wtime();
     struct Particle particles[NUM_PARTICLES];
     struct Coords globalBestCoords;
@@ -83,6 +89,7 @@ int main() {
 
     double globalBestFitness = INFINITY;
 
+    // Inicializacion de particulas
     #pragma omp parallel for
     for (int i = 0; i < NUM_PARTICLES; i++) {
         unsigned int r1, r2, r3, r4, r5, r6;
@@ -109,19 +116,22 @@ int main() {
         particles[i].bestCoords.y = 0;
     }
 
+    // Inicializacion variables por hilo
     double iterationBestFitness = globalBestFitness;
     struct Coords iterationBestCoords = globalBestCoords;
 
+    // Llevamos a cabo las iteraciones
     #pragma omp parallel 
     {
         for (int i = 0; i < NUM_ITERS; i++) {
             iterationBestCoords = globalBestCoords;
             iterationBestFitness = globalBestFitness;
+            // Cada hilo mantiene una variable privada de su mejor fitness
             #pragma omp for private(iterationBestCoords)
             for (int j = 0; j < NUM_PARTICLES; j++) {
                 update(&particles[j], &globalBestCoords, &globalBestFitness, &iterationBestCoords, &iterationBestFitness);
             }
-            {
+            // Al finalizar se realiza una comparacion para actualizar la variable global
             if (iterationBestFitness < globalBestFitness){
                 #pragma omp critical
                 {
@@ -132,10 +142,10 @@ int main() {
                     }
                 }
             }
-            }
         }
     }
 
+    // Calculo de distancia promedio de cada particula respecto al mejor punto encontrado
     double totalDistance = 0;
     #pragma omp parallel for reduction(+:totalDistance)
     for (int i = 0; i < NUM_PARTICLES; i++) {
@@ -144,6 +154,7 @@ int main() {
         totalDistance += distanceFromBest;
     }
 
+    // Impresion de resultados finales
     double end = omp_get_wtime();
     printf("Mejores Coordenadas: (%.15f, %.15f),Tiempo de Corrida %f, Distancia Promedio: %.15f", globalBestCoords.x, globalBestCoords.y, end - start, totalDistance / NUM_PARTICLES);
     return 0;

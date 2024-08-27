@@ -48,11 +48,10 @@ double fitness(struct Particle *p) {
 
 // Función de actualización de una partícula, se corre una vez por iteración
 void update(struct Particle *p, struct Coords *globalBestCoords, double *globalBestFitness) {
+    // Generacion de variables aleatorias
     unsigned int r1, r2;
-    rand_s(&r1); // Generate a random number
-    rand_s(&r2); // Generate another random number
-
-    // Convert to double in the range [0, 1]
+    rand_s(&r1);
+    rand_s(&r2);
     double dr1 = (double) r1 / UINT_MAX;
     double dr2 = (double) r2 / UINT_MAX;
 
@@ -81,6 +80,7 @@ void update(struct Particle *p, struct Coords *globalBestCoords, double *globalB
 }
 
 int main() {
+    // Inicializacion de variables
     double start = omp_get_wtime();
     struct Particle particles[NUM_PARTICLES];
     struct Coords globalBestCoords;
@@ -90,6 +90,7 @@ int main() {
 
     double globalBestFitness = INFINITY;
 
+    // Inicializacion de particulas
     for (int i = 0; i < NUM_PARTICLES; i++){
         unsigned int r1, r2, r3, r4;
         rand_s(&r1);
@@ -109,12 +110,15 @@ int main() {
         particles[i].bestCoords.y = 0;
     }
 
+    // Llevamos a cabo las iteraciones
     for (int i = 0; i < NUM_ITERS; i++){
+        // Actualizamos las particulas cambiando la variable global cuando se encuentre una mejor posicion
         for (int j = 0; j < NUM_PARTICLES; j++){
             update(&particles[j], &globalBestCoords, &globalBestFitness);
         }
     }
 
+    // Calculo de distancia promedio respecto al mejor punto encontrado
     double totalDistance = 0.0;
     for(int i = 0; i < NUM_PARTICLES; i++){
         double distanceFromBest = sqrt(pow(globalBestCoords.x - particles[i].currentCoords.x, 2) 
@@ -122,6 +126,7 @@ int main() {
         totalDistance += distanceFromBest;
     }
 
+    // Impresion de resultados finales
     double end = omp_get_wtime();
     printf("Mejores Coordenadas: (%.15f, %.15f),Tiempo de Corrida %f, Distancia Promedio: %.15f", globalBestCoords.x, globalBestCoords.y, end - start, totalDistance / NUM_PARTICLES);
     return 0;
