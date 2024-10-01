@@ -32,8 +32,8 @@ void* tostadora(void* arg) {
 
         // Agregar una libra de cafe al silo
         silo++;
-        cout << "Tostadora produced: 1 lb of roasted coffee" << endl;
-        cout << "Lbs of coffee in silo: " << silo << ", in bodega: " << bodega << endl;
+        cout << "Tostadora produjo: 1 lb of cafe tostado" << endl;
+        cout << "Lbs de cafe en silo: " << silo << ", en bodega: " << bodega << endl;
 
         // Avisar a la empacadora que puede verificar si ya hay 5 libras de cafe listas
         pthread_cond_signal(&cond_silo_ready);
@@ -65,8 +65,8 @@ void* empacadora(void* arg) {
         // Empaquetado de libra de cafe
         silo--;
         bodega++;
-        cout << "Empacadora produced: 1 bag of 1 lb of coffee" << endl;
-        cout << "Lbs of coffee in silo: " << silo << ", in bodega: " << bodega << endl;
+        cout << "Empacadora produjo: 1 lb de cafe empaquetado" << endl;
+        cout << "Lbs de cafe en silo: " << silo << ", en bodega: " << bodega << endl;
 
         // Cuando se producen suficientes bolsas (silo + bodega) para la produccion / tueste de mas cafe
         if (bodega + silo >= BAGS_TO_PRODUCE) {
@@ -93,9 +93,9 @@ int main() {
     pthread_join(thread_tostadora2, nullptr);
 
     // Mensaje final
-    cout << "Production complete." << endl;
-    cout << "Lbs of coffee in silo: " << silo << endl;
-    cout << "Total bags produced: " << bodega << endl;
+    cout << "Produccion Completa" << endl;
+    cout << "Lbs de cafe en silo " << silo << endl;
+    cout << "Bolsas producidas " << bodega << endl;
 
     // Destruccion de mutex y condvar
     pthread_mutex_destroy(&mutex);
