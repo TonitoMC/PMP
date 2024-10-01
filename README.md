@@ -3,7 +3,7 @@
 ## Video Explicatorio y Respuestas Teóricas
 En el Ejercicio 1 se utilizan 16 hilos, esto debido a la utilización de 16 structs diferentes para representar cada uno de los productos por los cuales había que hacer cálculos.
 
-Link al Video
+[Link al Video](https://youtu.be/J8b69ztK5iA)
 
 ### Ejercicio 1
 
