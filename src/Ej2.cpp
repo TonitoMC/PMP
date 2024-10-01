@@ -5,39 +5,34 @@
 using namespace std;
 
 // Variables compartidas
-int silo = 0;
-int bodega = 0;
+int silo = 0; // Lbs de café en el silo
+int bodega = 0; // Total de bolsas empacadas
+bool stopProduction = false; // Bandera para detener producción
 
 // Constante para la cantidad de bolsas de café a producir
-const int BAGS_TO_PRODUCE = 400;
+const int BAGS_TO_PRODUCE = 20;
 
-// Mutex para sincronizar acceso al silo y bodega
+// Mutex y variable condicional para sincronizar acceso al silo y bodega
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t cond_silo_full = PTHREAD_COND_INITIALIZER;
+pthread_cond_t cond_silo_ready = PTHREAD_COND_INITIALIZER;
 
-// Función para simular la Tostadora 1
-void* tostadora1(void* arg) {
+// Función para simular una tostadora
+void* tostadora(void* arg) {
     while (true) {
-        sleep(1); // Simula el tiempo de producción
+        sleep(1); // Simula el tiempo de producción de 1 lb de café
+        if (stopProduction){
+            break;
+        }
         pthread_mutex_lock(&mutex);
-        silo++; // Añade 1 lb de café al silo
-        cout << "Tostadora 1 produjo: 1 lb de café tostado" << endl;
-        cout << "Lbs de café en silo: " << silo << endl;
-        pthread_cond_signal(&cond_silo_full); // Despierta a la empacadora si es necesario
-        pthread_mutex_unlock(&mutex);
-    }
-    return nullptr;
-}
 
-// Función para simular la Tostadora 2
-void* tostadora2(void* arg) {
-    while (true) {
-        sleep(1); // Simula el tiempo de producción
-        pthread_mutex_lock(&mutex);
-        silo++; // Añade 1 lb de café al silo
-        cout << "Tostadora 2 produjo: 1 lb de café tostado" << endl;
-        cout << "Lbs de café en silo: " << silo << endl;
-        pthread_cond_signal(&cond_silo_full); // Despierta a la empacadora si es necesario
+        // Añadir 1 lb de café al silo
+        silo++;
+        cout << "Tostadora produjo: 1 lb de cafe tostado" << endl;
+        cout << "Lbs de cafe en silo: " << silo << ", en bodega: " << bodega << endl;
+
+        // Notificar a empacadora de verificar condición de inicio de empaquetado
+        pthread_cond_signal(&cond_silo_ready);
+
         pthread_mutex_unlock(&mutex);
     }
     return nullptr;
@@ -47,25 +42,29 @@ void* tostadora2(void* arg) {
 void* empacadora(void* arg) {
     while (true) {
         pthread_mutex_lock(&mutex);
-        // Espera a que haya al menos 5 lbs de café en el silo
-        while (silo < 5) {
-            pthread_cond_wait(&cond_silo_full, &mutex);
+        if (stopProduction == false){
+        // Esperar hasta que haya al menos 5 lb de café en el silo
+            while (silo < 5 && bodega < BAGS_TO_PRODUCE) {
+                pthread_cond_wait(&cond_silo_ready, &mutex);
+            }
         }
-        
-        // Empaca 1 bolsa de café y la envía a la bodega
-        silo--;
-        bodega++;
-        cout << "Empacadora produjo: 1 bolsa de 1 lb de café" << endl;
-        cout << "Lbs de café en bodega: " << bodega << endl;
+        sleep(1); // Simula el tiempo de empaquetado
 
-        // Si ya se han producido todas las bolsas necesarias, termina el hilo
-        if (bodega >= BAGS_TO_PRODUCE) {
+        // Si ya se ha alcanzado la producción total, detener la empacadora
+        if (bodega + silo >= BAGS_TO_PRODUCE) {
+            stopProduction = true; // Señalar que las tostadoras deben detenerse
             pthread_mutex_unlock(&mutex);
+        }
+        if (silo == 0){
             break;
         }
+        // Empacar 1 lb de café y enviarla a la bodega
+        silo--;
+        bodega++;
+        cout << "Empacadora produjo: 1 bolsa de 1 lb de cafe" << endl;
+        cout << "Lbs de cafe en silo: " << silo << ", en bodega: " << bodega << endl;
 
         pthread_mutex_unlock(&mutex);
-        sleep(1); // Simula el tiempo de empaquetado
     }
     return nullptr;
 }
@@ -74,24 +73,26 @@ int main() {
     // Hilos para las máquinas
     pthread_t thread_tostadora1, thread_tostadora2, thread_empacadora;
 
-    // Crear hilos
-    pthread_create(&thread_tostadora1, nullptr, tostadora1, nullptr);
-    pthread_create(&thread_tostadora2, nullptr, tostadora2, nullptr);
+    // Crear hilos para las tostadoras y empacadora
+    pthread_create(&thread_tostadora1, nullptr, tostadora, nullptr);
+    pthread_create(&thread_tostadora2, nullptr, tostadora, nullptr);
     pthread_create(&thread_empacadora, nullptr, empacadora, nullptr);
 
     // Esperar a que la empacadora termine de producir todas las bolsas
     pthread_join(thread_empacadora, nullptr);
 
-    // Cuando se terminan las bolsas, cancelar las tostadoras
-    pthread_cancel(thread_tostadora1);
-    pthread_cancel(thread_tostadora2);
+    // Esperar a que las tostadoras terminen
+    pthread_join(thread_tostadora1, nullptr);
+    pthread_join(thread_tostadora2, nullptr);
 
     // Mensaje final
-    cout << "Lbs de café en silo: " << silo << endl;
+    cout << "Produccion completa." << endl;
+    cout << "Lbs de cafe en silo: " << silo << endl;
+    cout << "Total bolsas producidas: " << bodega << endl;
 
     // Destruir el mutex y la variable condicional
     pthread_mutex_destroy(&mutex);
-    pthread_cond_destroy(&cond_silo_full);
+    pthread_cond_destroy(&cond_silo_ready);
 
     return 0;
 }

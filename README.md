@@ -1,4 +1,4 @@
-# Laboratorio 6
+# Laboratorio 7
 30 de Septiembre de 2024
 ## Video Explicatorio y Respuestas Teóricas
 En el Ejercicio 1 se utilizan 16 hilos, esto debido a la utilización de 16 structs diferentes para representar cada uno de los productos por los cuales había que hacer cálculos.
