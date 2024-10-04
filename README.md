@@ -1,34 +1,24 @@
-# Laboratorio 7
-30 de Septiembre de 2024
-## Video Explicatorio y Respuestas Teóricas
-En el Ejercicio 1 se utilizan 16 hilos, esto debido a la utilización de 16 structs diferentes para representar cada uno de los productos por los cuales había que hacer cálculos.
+# Proyecto 3: Pong & Pthreads
+Octubre de 2024 | José Mérida, Ángel Esquit, Javier España, Daniel Barillas
+## Dependencias
+Pendiente
 
-Link al Video
+## Corrida / Compilación
 
-### Ejercicio 1
-
-Compilación
+Compilación | Folder de SDL2 en la raiz del disco C
 
 ```
-gcc -o bin/Ej1 src/Ej1.cpp -lpthread -lstdc++
+g++ -I C:/SDL2/include -L C:/SDL2/lib -L C:/SDL2_image/lib -o bin/pong.exe src/pong.cpp -lmingw32 -lSDL2main -lSDL2 -lSDL2_image
 ```
 
-Ejecución
+Compilación | Folder de SDL2 en otro directorio
 
 ```
-./bin/Ej1
-```
-
-### Ejercicio 2
-
-Compilación
-
-```
-gcc -o bin/Ej2 src/Ej2.cpp -lpthread -lstdc++
+g++ -I ../SDL2/include -L ../SDL2/lib -o bin/pong.exe src/pong.cpp -lmingw32 -lSDL2main -lSDL2 
 ```
 
 Ejecución
 
 ```
-./bin/Ej2
+./bin/pong
 ```
