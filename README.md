@@ -8,7 +8,7 @@ Pendiente
 Compilación | Folder de SDL2 en la raiz del disco C
 
 ```
-g++ -I C:/SDL2/include -L C:/SDL2/lib -L C:/SDL2_image/lib -o bin/pong.exe src/pong.cpp -lmingw32 -lSDL2main -lSDL2 -lSDL2_image
+g++ -I C:/SDL2/include -L C:/SDL2/lib -L C:/SDL2_image/lib -o bin/pong.exe src/pong.cpp -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf
 ```
 
 Compilación | Folder de SDL2 en otro directorio
