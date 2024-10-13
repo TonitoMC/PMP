@@ -2,7 +2,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <unistd.h>
-#include <string>
+#include <string>  // Include string library
 
 using namespace std;
 
@@ -14,20 +14,14 @@ const int MAX_SILLAS = 3;
 bool max_prod = false;
 int buffer[MAX_BUFFER];       
 int in = 0;                   
-int out = 0;                   
+int out = 0;                  
 int sillasProducidas = 0;    
 
-// Track the number of pieces each consumer has consumed
-int consumerPatas[100] = {0};
-int consumerRespaldo[100] = {0};
-int consumerAsiento[100] = {0};
-
-// Semaphores and mutex
+// Semáforos y mutex
 sem_t vacios;   
 sem_t llenos;   
 pthread_mutex_t mutex;
 
-// Producer function
 void* productor(void* arg) {
     int id = *(int*)arg;
     int piezaId;
@@ -41,32 +35,31 @@ void* productor(void* arg) {
         }
         pthread_mutex_unlock(&mutex);
 
-        piezaId = rand() % numProductos; // Select a random piece
+        piezaId = rand() % numProductos; // Seleccionar una pieza al azar
 
-        sem_wait(&vacios); // Wait until there is space in the buffer
-        pthread_mutex_lock(&mutex); // Protect access to the buffer
+        sem_wait(&vacios); // Espera hasta que hay espacio en el buffer
+        pthread_mutex_lock(&mutex); // Protege el acceso al buffer
 
-        if (max_prod) {
+        if (max_prod) { // Check again under mutex before producing
             pthread_mutex_unlock(&mutex);
             sem_post(&vacios); // Prevent deadlock by releasing semaphore
             break;
         }
 
-        buffer[in] = piezaId; // Add the piece to the buffer
+        buffer[in] = piezaId; // Añade la pieza al buffer
         cout << "Productor " << id << " ha fabricado la pieza " << productos[piezaId]
              << " y la coloco en la posicion " << in << endl;
-        in = (in + 1) % MAX_BUFFER; // Move the circular buffer index
+        in = (in + 1) % MAX_BUFFER; // Avanza el índice circular del buffer
 
         pthread_mutex_unlock(&mutex);
-        sem_post(&llenos); // Increase the number of available products
+        sem_post(&llenos); // Incrementa el número de productos disponibles
         
-        sleep(1); // Simulate production time
+        sleep(1); // Simula el tiempo de fabricación
     }
 
     return NULL;
 }
 
-// Consumer function
 void* consumidor(void* arg) {
     int id = *(int*)arg;
     int piezaId;
@@ -81,31 +74,28 @@ void* consumidor(void* arg) {
         }
         pthread_mutex_unlock(&mutex);
 
-        sem_wait(&llenos); // Wait until there are available products
-        pthread_mutex_lock(&mutex); // Protect access to the buffer
+        sem_wait(&llenos); // Espera hasta que existan productos disponibles
+        pthread_mutex_lock(&mutex); // Protege el acceso al buffer
 
-        if (max_prod) {
+        if (max_prod) { // Additional safety check under mutex
             pthread_mutex_unlock(&mutex);
             sem_post(&llenos); // Prevent deadlock by releasing semaphore
             break;
         }
 
         piezaId = buffer[out];
-        string pieza = productos[piezaId]; // Get the piece type
+        string pieza = productos[piezaId]; // Get piece type
 
         cout << "Consumidor " << id << " ha retirado la pieza " << productos[piezaId]
              << " de la posicion " << out << endl;
-        out = (out + 1) % MAX_BUFFER; // Move the circular buffer index
+        out = (out + 1) % MAX_BUFFER; // Avanza en el índice circular del buffer
 
         if (pieza == "Pata") {
             patas++;
-            consumerPatas[id]++;  // Track how many patas this consumer processed
         } else if (pieza == "Respaldo") {
             respaldos++;
-            consumerRespaldo[id]++;  // Track how many respaldos this consumer processed
         } else if (pieza == "Asiento") {
             asientos++;
-            consumerAsiento[id]++;  // Track how many asientos this consumer processed
         }
 
         if (patas >= 4 && asientos >= 1 && respaldos >= 1) {
@@ -120,38 +110,18 @@ void* consumidor(void* arg) {
         printf("Consumidor %d. Patas: %d, Asientos: %d, Respaldos %d\n", id, patas, asientos, respaldos);
 
         pthread_mutex_unlock(&mutex);
-        sem_post(&vacios); // Increase the number of empty spaces
+        sem_post(&vacios); // Incrementa el número de espacios vacíos
 
-        sleep(2); // Simulate assembly time
+        sleep(2); // Simula el tiempo de ensamblaje
     }
 
     return NULL;
 }
 
-// Function to print the final report
-void printFinalReport(int numConsumidores) {
-    cout << "\n=== Final Report ===" << endl;
-    
-    // Report remaining items in the buffer
-    cout << "Remaining items in the buffer: " << endl;
-    for (int i = 0; i < MAX_BUFFER; i++) {
-        cout << "Position " << i << ": " << productos[buffer[i]] << endl;
-    }
-    
-    // Report each consumer's processed items
-    for (int i = 0; i < numConsumidores; ++i) {
-        cout << "\nConsumidor " << i + 1 << " final stats:" << endl;
-        cout << "  Patas: " << consumerPatas[i + 1] << endl;
-        cout << "  Respaldos: " << consumerRespaldo[i + 1] << endl;
-        cout << "  Asientos: " << consumerAsiento[i + 1] << endl;
-    }
-    cout << "====================" << endl;
-}
-
 int main() {
     int numProductores, numConsumidores;
 
-    // Request the number of producers and consumers
+    // Solicitar la cantidad de productores y consumidores
     cout << "Ingrese el numero de productores: ";
     cin >> numProductores;
     cout << "Ingrese el numero de consumidores: ";
@@ -160,24 +130,24 @@ int main() {
     pthread_t productores[100], consumidores[100];  
     int idProductores[100], idConsumidores[100];    
 
-    // Initialize semaphores and mutex
+    // Inicializa semáforos y mutex
     sem_init(&vacios, 0, MAX_BUFFER);  
     sem_init(&llenos, 0, 0);           
     pthread_mutex_init(&mutex, NULL);
 
-    // Create producer threads
+    // Crea hilos productores
     for (int i = 0; i < numProductores; ++i) {
         idProductores[i] = i + 1;
         pthread_create(&productores[i], NULL, productor, &idProductores[i]);
     }
 
-    // Create consumer threads
+    // Crea hilos consumidores
     for (int i = 0; i < numConsumidores; ++i) {
         idConsumidores[i] = i + 1;
         pthread_create(&consumidores[i], NULL, consumidor, &idConsumidores[i]);
     }
 
-    // Wait for all threads to finish
+    // Espera a que los hilos terminen
     for (int i = 0; i < numProductores; ++i) {
         pthread_join(productores[i], NULL);
     }
@@ -186,13 +156,5 @@ int main() {
         pthread_join(consumidores[i], NULL);
     }
 
-    // Print the final report
-    printFinalReport(numConsumidores);
-
-    // Destroy semaphores and mutex
-    sem_destroy(&vacios);
-    sem_destroy(&llenos);
-    pthread_mutex_destroy(&mutex);
-
-    return 0;
+    // Destruye semáforos y mutex
 }
