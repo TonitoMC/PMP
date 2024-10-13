@@ -6,7 +6,7 @@ No se si era intencional el funcionamiento de los consumidores pero para que con
 ## Video Explicatorio y Documentos
 Los documentos se encuentran en el PDF Micros_lab08.pdf con las respuestas teóricas y explicaciones
 
-Link al video
+[Link al Video](https://youtu.be/ph7xFcvZxFo)
 
 ### Ejercicio 2
 Compilación
