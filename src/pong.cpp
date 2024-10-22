@@ -21,11 +21,11 @@ int BALL_SPEED = 15;                // Velocidad de la pelota
 const int PADDLE_WIDTH = 20;        // Ancho de paleta
 const int MAX_BALL_SPEED = 20;      // Velocidad Maxima de Pelota
 const int MIN_BALL_SPEED = 15;      // Velocidad Minima de Pelota
-const int MIN_PADDLE_SPEED = 5;     // Velocidad Minima de Paleta
-const int MAX_PADDLE_SPEED = 8;    // Velocidad Maxima de Paleta
+const int MIN_PADDLE_SPEED = 12;     // Velocidad Minima de Paleta
+const int MAX_PADDLE_SPEED = 17;    // Velocidad Maxima de Paleta
 const int WINNING_SCORE = 10;
 const double MAX_ANGLE = 0.8;
-int paddleSpeed = 7;              // Velocidad de paleta
+int paddleSpeed = 12;              // Velocidad de paleta
 TTF_Font* font = nullptr;
 int player1Score;
 int player2Score;
@@ -104,7 +104,6 @@ SDL_Rect rightPaddleRect = { SCREEN_WIDTH - 70, SCREEN_HEIGHT / 2 - 50, 20, 100 
 Paddle rightPaddle = {rightPaddleRect, false, false};   // Estructura para almacenar la paleta y su estado de movimiento
 
 
-
 // Función para manejar una paleta controlada por un jugador
 void* playerPaddleFunc(void* arg) {
     Paddle* paddle = (Paddle*)arg;
@@ -164,10 +163,6 @@ void* computerPaddleFunc(void* arg) {
     return NULL;
 }
 
-// Revisa si la pelota se encuentra dentro de la altura de la paleta
-bool isBallWithinPaddleHeight(int ballY, int ballSize, int paddleY, int paddleHeight) {
-    return ballY + ballSize >= paddleY && ballY <= paddleY + paddleHeight;
-}
 
 // Funcion para manejar los movimientos de la pelota
 void* ballFunc(void* arg) {
@@ -175,9 +170,11 @@ void* ballFunc(void* arg) {
     Ball* ball = ballData->ball;
     int* player1Score = ballData->player1Score;
     int* player2Score = ballData->player2Score;
+    int ballFrozen = 0;
 
     while (!quit) {
         // Actualizacion de Posicion, esto se puede realizar de manera independiente de los demas hilos
+        if (ballFrozen == 0){
         ball->rect.x += ball->velX;
         ball->rect.y += ball->velY;
 
@@ -214,7 +211,6 @@ void* ballFunc(void* arg) {
                 float normalizedHitPos = static_cast<float>(hitPos) / (PADDLE_HEIGHT / 2);
 
                 double bounceAngle = normalizedHitPos * MAX_ANGLE;
-                // TODO NORMALIZEDHITPOS COULD BE BADLY CALCULATE SET A MAX TO IT.
                 ball->velX = fabs(cos(bounceAngle) * BALL_SPEED);
                 ball->velY = sin(bounceAngle) * BALL_SPEED;
 
@@ -255,9 +251,9 @@ void* ballFunc(void* arg) {
 
             double angle = 0.785398; 
 
-            // Randomly choose the sign of velX and velY
             ball->velX = ((rand() % 2 == 0) ? 1 : -1) * cos(angle) * BALL_SPEED;
             ball->velY = ((rand() % 2 == 0) ? 1 : -1) * sin(angle) * BALL_SPEED;
+            ballFrozen = 12;
         }
 
         if (ball->rect.x > SCREEN_WIDTH) {
@@ -270,19 +266,24 @@ void* ballFunc(void* arg) {
 
             double angle = 0.785398; 
 
-            // Randomly choose the sign of velX and velY
             ball->velX = ((rand() % 2 == 0) ? 1 : -1) * cos(angle) * BALL_SPEED;
             ball->velY = ((rand() % 2 == 0) ? 1 : -1) * sin(angle) * BALL_SPEED;
+            ballFrozen = 12;
         }
 
         // Desbloquear el Mutex de juego y señalar al hilo de renderizado que el juego está actualizado
         pthread_mutex_unlock(&gameMutex);
         pthread_cond_signal(&renderCond);
+        } else {
+            ballFrozen--;
+            sem_wait(&ballUpdateSem);
+            sem_wait(&ballUpdateSem);
+            pthread_cond_signal(&renderCond);
+        }
         if (quit) break;
     }
     return NULL;
 }
-
 
 
 // Función de lógica del juego
