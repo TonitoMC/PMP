@@ -21,6 +21,7 @@ const int MAX_BALL_SPEED = 20;  // Velocidad Maxima de Pelota
 const int MIN_BALL_SPEED = 15;  // Velocidad Minima de Pelota
 const int MIN_PADDLE_SPEED = 5; // Velocidad Minima de Paleta
 const int MAX_PADDLE_SPEED = 8;    // Velocidad Maxima de Paleta
+const int WINNING_SCORE = 10;
 int paddleSpeed = 8;            // Velocidad de paleta
 TTF_Font* font = nullptr;
 int player1Score;
@@ -144,15 +145,14 @@ void* computerPaddleFunc(void* arg) {
         pthread_mutex_lock(&gameMutex);
         pthread_cond_wait(&paddleUpdateCond, &gameMutex);
         pthread_mutex_unlock(&gameMutex);
-        int speedVariation = (rand() % 3) - 1;  // Randomly -1, 0, or 1 to slightly adjust speed
 
         // Verifica el estado de la paleta y la posicion de la pelota, se mueve directamente
         // hacia la altura de la pelota respecto a la paleta
         if (global_ball.rect.y < paddle->rect.y && paddle->rect.y > WALL_THICKNESS){
-            paddle->rect.y -= paddleSpeed + speedVariation;
+            paddle->rect.y -= paddleSpeed;
         }
         if (global_ball.rect.y > paddle->rect.y + PADDLE_HEIGHT && paddle->rect.y + PADDLE_HEIGHT < SCREEN_HEIGHT - WALL_THICKNESS){
-            paddle->rect.y += paddleSpeed + speedVariation;
+            paddle->rect.y += paddleSpeed;
         }
         // Postea el semaforo de actualizacion de la pelota
         sem_post(&ballUpdateSem);
@@ -332,13 +332,17 @@ void* logicThreadFunc(void* arg) {
         // Señalar que las paletas deben actualizarse
         pthread_cond_broadcast(&paddleUpdateCond);
         pthread_mutex_unlock(&gameMutex);
-        if (player1Score >= 5){
+        if (player1Score >= WINNING_SCORE){
             quit = true;
+            winner = 1;
+            break;
+        } else if (player2Score >= WINNING_SCORE){
+            quit = true;
+            winner = 2;
             break;
         }
         usleep(16000);
     }
-    printf("AAAAAAAAAA");
     sem_post(&ballUpdateSem);
     sem_post(&ballUpdateSem);
     pthread_join(leftPaddleThread, NULL);
@@ -347,13 +351,6 @@ void* logicThreadFunc(void* arg) {
     currentState = GAME_OVER;
 
     return nullptr;
-}
-
-bool checkWinCondition(int player1Score, int player2Score){
-    if (player1Score >= 3){
-        return true;
-    }
-    return false;
 }
 
 // Rutina del hilo de renderizado
