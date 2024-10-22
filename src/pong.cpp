@@ -376,6 +376,7 @@ void* renderThreadFunc(void* arg) {
             if (mainMenuTexture) {
                 SDL_RenderCopy(renderer, mainMenuTexture, NULL, NULL);
             }
+            SDL_Delay(16);  // Aproximadamente 60 FPS
         } else if (currentState == SINGLE_PLAYER || currentState == TWO_PLAYER || currentState == SIMULATION) {
             // Limpia la pantalla del renderer
             pthread_mutex_lock(&gameMutex);
@@ -431,6 +432,7 @@ void* renderThreadFunc(void* arg) {
                 SDL_FreeSurface(surface);
                 SDL_DestroyTexture(texture);
             }
+            SDL_Delay(16);  // Aproximadamente 60 FPS
 
         } else if (currentState == SETTINGS) {
             if (settingsTexture) {
@@ -458,11 +460,11 @@ void* renderThreadFunc(void* arg) {
                 SDL_FreeSurface(surface);
                 SDL_DestroyTexture(texture);
             }
+            SDL_Delay(16);  // Aproximadamente 60 FPS
         }
 
         // Actualizar el renderizado
         SDL_RenderPresent(renderer);
-        SDL_Delay(16);  // Aproximadamente 60 FPS
     }
 
     return nullptr;
