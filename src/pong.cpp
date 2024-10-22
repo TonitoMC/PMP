@@ -7,7 +7,7 @@
 #include <semaphore.h>
 #include <SDL2/SDL_ttf.h>
 #include <cstdlib>
-#include <ctime>   // for time()
+#include <ctime>
 #include <cmath>
 // Constantes de juego / variables globales
 const int SCREEN_WIDTH = 800;       // Ancho de la pantalla
@@ -90,7 +90,7 @@ Ball global_ball = {{SCREEN_WIDTH / 2 - BALL_SIZE / 2, SCREEN_HEIGHT / 2 - BALL_
 
 
 // Variable para controlar la finalización del juego
-bool quit = false;
+std::atomic<bool> quit = false;
 
 // Paleta Izquierda
 SDL_Rect leftPaddleRect = { 50, SCREEN_HEIGHT / 2 - 50, 20, 100 }; // Rectangulo de SDL
