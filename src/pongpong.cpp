@@ -5,7 +5,6 @@
 #include <atomic>
 #include <unistd.h>
 #include <semaphore.h>
-#include <SDL2/SDL_ttf.h>
 
 // Constantes de juego / variables globales
 const int SCREEN_WIDTH = 800;   // Ancho de la pantalla
@@ -16,7 +15,7 @@ const int BALL_SIZE = 15;       // Tamano de la pelota
 const int BALL_SPEED = 4;       // Velocidad de la pelota
 const int PADDLE_WIDTH = 20;    // Ancho de paleta
 int paddleSpeed = 5;            // Velocidad de paleta
-TTF_Font* font = nullptr;
+
 
 // Enumeración para diferentes estados de juego
 enum GameState {
@@ -91,7 +90,7 @@ void* playerPaddleFunc(void* arg) {
     Paddle* paddle = (Paddle*)arg;
     
     //TODO actualizar a otra variable
-    while (!quit) {
+    while (!quit) {x
         /**
          * Espera a variable condicional señalizada desde el hilo de lógica de juego. De
          * esta manera se actualiza correctamente el estado de la paleta (moviéndose hacia
@@ -110,8 +109,6 @@ void* playerPaddleFunc(void* arg) {
         }
         // Postea el semaforo de actualizacion de la pelota
         sem_post(&ballUpdateSem);
-                if (quit) break;
-
     }
     return NULL;
 }
@@ -140,8 +137,6 @@ void* computerPaddleFunc(void* arg) {
         // Postea el semaforo de actualizacion de la pelota
         // TODO revisar si se cambia a barrera
         sem_post(&ballUpdateSem);
-                if (quit) break;
-
     }
     return NULL;
 }
@@ -211,7 +206,6 @@ void* ballFunc(void* arg) {
          */
         pthread_mutex_unlock(&gameMutex);
         pthread_cond_signal(&renderCond);
-        if (quit) break;
     }
     return NULL;
 }
@@ -259,7 +253,10 @@ void* logicThreadFunc(void* arg) {
     while (currentState != QUIT) {
         // Actualizar el estado de las teclas
         const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
-
+        if (player1Score >= 2){
+            quit = true;
+            break;
+        }
 
         pthread_mutex_lock(&gameMutex);
 
@@ -272,11 +269,8 @@ void* logicThreadFunc(void* arg) {
         // Señalar que las paletas deben actualizarse
         pthread_cond_broadcast(&paddleUpdateCond);
         pthread_mutex_unlock(&gameMutex);
-        if (player1Score >= 2){
-            quit = true;
-            break;
-        }
-        usleep(16000);
+
+        usleep(4000);
     }
     printf("AAAAAAAAAA");
     sem_post(&ballUpdateSem);
@@ -330,7 +324,7 @@ void* renderThreadFunc(void* arg) {
         SDL_RenderPresent(renderer);
 
         // Control de framerate
-        SDL_Delay(16);
+        SDL_Delay(4);
     }
 
     return nullptr;
@@ -364,17 +358,7 @@ bool init(SDL_Window*& window, SDL_Renderer*& renderer) {
         std::cerr << "¡SDL_image no pudo inicializarse! Error IMG: " << IMG_GetError() << std::endl;
         return false;
     }
-    if (TTF_Init() == -1) {
-        std::cerr << "SDL_ttf could not initialize! TTF_Error: " << TTF_GetError() << std::endl;
-        return false;
-    }
 
-    // Cargar la fuente
-    font = TTF_OpenFont("res/arial.ttf", 28);
-    if (!font) {
-        std::cerr << "Failed to load font! TTF_Error: " << TTF_GetError() << std::endl;
-        return false;
-    }
     return true;
 }
 
@@ -458,12 +442,11 @@ int main(int argc, char* argv[]) {
                 }
                 if (currentState == GAME_OVER) {
                     pthread_join(gameLogicThread, NULL);
-                    quit = false;
                     currentState = MAIN_MENU;
                 }
             }
         }
-        SDL_Delay(16);  // Aproximadamente 60 FPS
+        SDL_Delay(4);  // Aproximadamente 60 FPS
     }
 
     // Limpiar recursos
