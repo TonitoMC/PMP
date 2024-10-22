@@ -251,7 +251,7 @@ void* ballFunc(void* arg) {
 
             double angle = 0.785398; 
 
-            ball->velX = ((rand() % 2 == 0) ? 1 : -1) * cos(angle) * BALL_SPEED;
+            ball->velX = (-1) * cos(angle) * BALL_SPEED;
             ball->velY = ((rand() % 2 == 0) ? 1 : -1) * sin(angle) * BALL_SPEED;
             ballFrozen = 12;
         }
@@ -266,7 +266,7 @@ void* ballFunc(void* arg) {
 
             double angle = 0.785398; 
 
-            ball->velX = ((rand() % 2 == 0) ? 1 : -1) * cos(angle) * BALL_SPEED;
+            ball->velX = (1) * cos(angle) * BALL_SPEED;
             ball->velY = ((rand() % 2 == 0) ? 1 : -1) * sin(angle) * BALL_SPEED;
             ballFrozen = 12;
         }
