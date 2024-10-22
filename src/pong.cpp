@@ -13,11 +13,13 @@ const int SCREEN_HEIGHT = 600;  // ALtura de la pantalla
 const int WALL_THICKNESS = 10;  // Ancho de las paredes
 const int PADDLE_HEIGHT = 100;  // Altura de las paletas
 const int BALL_SIZE = 15;       // Tamano de la pelota
-const int BALL_SPEED = 4;       // Velocidad de la pelota
+const int BALL_SPEED = 15;       // Velocidad de la pelota
 const int PADDLE_WIDTH = 20;    // Ancho de paleta
-int paddleSpeed = 5;            // Velocidad de paleta
+int paddleSpeed = 1;            // Velocidad de paleta
 TTF_Font* font = nullptr;
-
+int player1Score;
+int player2Score;
+int winner = 1;
 // Enumeración para diferentes estados de juego
 enum GameState {
     MAIN_MENU,      // Menu Principal
@@ -36,6 +38,8 @@ std::atomic<GameState> currentState(MAIN_MENU);
 SDL_Window* window = nullptr;
 SDL_Renderer* renderer = nullptr;
 SDL_Texture* mainMenuTexture = nullptr;
+SDL_Texture* settingsTexture = nullptr;
+SDL_Texture* gameOverTexture = nullptr;
 
 // Rectángulos para botones del menú
 SDL_Rect singlePlayerButton = { 175, 210, 450, 75 };
@@ -145,6 +149,10 @@ void* computerPaddleFunc(void* arg) {
     }
     return NULL;
 }
+// Check if the ball is within the paddle's height range
+bool isBallWithinPaddleHeight(int ballY, int ballSize, int paddleY, int paddleHeight) {
+    return ballY + ballSize >= paddleY && ballY <= paddleY + paddleHeight;
+}
 
 // Funcion para manejar los movimientos de la pelota
 void* ballFunc(void* arg) {
@@ -152,6 +160,7 @@ void* ballFunc(void* arg) {
     Ball* ball = ballData->ball;
     int* player1Score = ballData->player1Score;
     int* player2Score = ballData->player2Score;
+
     while (!quit) {
 
         // Actualizacion de Posicion, esto se puede realizar de manera independiente de los demas hilos
@@ -159,62 +168,88 @@ void* ballFunc(void* arg) {
         ball->rect.y += ball->velY;
 
         // Verificacion de colisiones con paredes
-        if (ball -> rect.y <= WALL_THICKNESS || ball-> rect.y + BALL_SIZE >= SCREEN_HEIGHT - WALL_THICKNESS) {
-            ball->velY = -ball->velY;
+        if (ball->rect.y <= WALL_THICKNESS) {
+            ball->rect.y = WALL_THICKNESS;  // Ajustar posición para evitar clipping
+            ball->velY = -ball->velY;       // Rebotar hacia abajo
+        }
+        if (ball->rect.y + BALL_SIZE >= SCREEN_HEIGHT - WALL_THICKNESS) {
+            ball->rect.y = SCREEN_HEIGHT - WALL_THICKNESS - BALL_SIZE;  // Ajustar posición para evitar clipping
+            ball->velY = -ball->velY;  // Rebotar hacia arriba
         }
 
-        //TODO Espera a que actualicen paletas antes de verificar colisiones con jugador
-        //TODO Calculos
-        /**
-         * Espera a que ambas paletas actualicen su posicion por medio de un semaforo.
-         * Esto es necesario para evitar que se calculen colisiones con posiciones de
-         * paleta viejas.
-         */
+        // Espera a que ambas paletas actualicen su posicion por medio de un semaforo.
         sem_wait(&ballUpdateSem);
         sem_wait(&ballUpdateSem);
+        pthread_mutex_lock(&gameMutex);
 
-        // Verifica rebotes con la paleta izquierda
+        // Verifica colisiones con la paleta izquierda
         if (ball->rect.x <= leftPaddle.rect.x + PADDLE_WIDTH &&
-            ball->rect.y + BALL_SIZE >= leftPaddle.rect.y &&
-            ball->rect.y <= leftPaddle.rect.y + PADDLE_HEIGHT) {
-            ball->velX = -ball->velX;
+            ball->rect.x + BALL_SIZE >= leftPaddle.rect.x) {
+            // Si la pelota está dentro de la altura de la paleta
+            if (ball->rect.y + BALL_SIZE >= leftPaddle.rect.y &&
+                ball->rect.y <= leftPaddle.rect.y + PADDLE_HEIGHT) {
+                
+                // Evitar que la pelota se sobreponga en la paleta
+                ball->rect.x = leftPaddle.rect.x + PADDLE_WIDTH;
+
+                // Invertir dirección horizontal
+                ball->velX = -ball->velX;
+
+                // Ajustar velocidad vertical basado en donde golpea la paleta
+                int hitPos = (ball->rect.y + BALL_SIZE / 2) - (leftPaddle.rect.y + PADDLE_HEIGHT / 2);
+                ball->velY = hitPos / 10;  // Ajustar velocidad vertical
+            }
         }
 
-        // Verifica rebotes con la paleta derecha
+        // Verifica colisiones con la paleta derecha
         if (ball->rect.x + BALL_SIZE >= rightPaddle.rect.x &&
-            ball->rect.y + BALL_SIZE >= rightPaddle.rect.y &&
-            ball->rect.y <= rightPaddle.rect.y + PADDLE_HEIGHT) {
-            ball->velX = -ball->velX;
-        }  
+            ball->rect.x <= rightPaddle.rect.x + PADDLE_WIDTH) {
+            // Si la pelota está dentro de la altura de la paleta
+            if (ball->rect.y + BALL_SIZE >= rightPaddle.rect.y &&
+                ball->rect.y <= rightPaddle.rect.y + PADDLE_HEIGHT) {
+
+                // Evitar que la pelota se sobreponga en la paleta
+                ball->rect.x = rightPaddle.rect.x - BALL_SIZE;
+
+                // Invertir dirección horizontal
+                ball->velX = -ball->velX;
+
+                // Ajustar velocidad vertical basado en donde golpea la paleta
+                int hitPos = (ball->rect.y + BALL_SIZE / 2) - (rightPaddle.rect.y + PADDLE_HEIGHT / 2);
+                ball->velY = hitPos / 10;  // Ajustar velocidad vertical
+            }
+        }
 
         // Manejo de la puntuacion
         if (ball->rect.x < 0) {
+            // Puntaje para jugador 2
+            (*player2Score)++;
             // Reiniciar la pelota
             ball->rect.x = SCREEN_WIDTH / 2 - BALL_SIZE / 2;
             ball->rect.y = SCREEN_HEIGHT / 2 - BALL_SIZE / 2;
             ball->velX = BALL_SPEED;
             ball->velY = BALL_SPEED;
-            (*player1Score)++;
         }
-
         if (ball->rect.x > SCREEN_WIDTH) {
+            // Puntaje para jugador 1
+            (*player1Score)++;
             // Reiniciar la pelota
             ball->rect.x = SCREEN_WIDTH / 2 - BALL_SIZE / 2;
             ball->rect.y = SCREEN_HEIGHT / 2 - BALL_SIZE / 2;
             ball->velX = -BALL_SPEED;
             ball->velY = BALL_SPEED;
-            (*player2Score)++;
         }
-        /**
-         * Desbloquea el Mutex de juego y señaliza a el hilo de renderizado
-         * que se encuentra actualizado el estado de juego para que lo muestre
-         */
+
+        // Desbloquear el Mutex de juego y señalar al hilo de renderizado que el juego está actualizado
         pthread_mutex_unlock(&gameMutex);
         pthread_cond_signal(&renderCond);
         if (quit) break;
     }
     return NULL;
 }
+
+
+
 
 // Función de lógica del juego
 void* logicThreadFunc(void* arg) {
@@ -225,8 +260,8 @@ void* logicThreadFunc(void* arg) {
      * y únicamente se les pasen diferentes rutinas como parámetro.
      */
     pthread_t leftPaddleThread, rightPaddleThread, ballThread;
-    int player1Score = 0;
-    int player2Score = 0;
+    player1Score = 0;
+    player2Score = 0;
 
     BallData ballData = BallData{&global_ball, &player1Score, &player2Score};
 
@@ -315,14 +350,64 @@ void* renderThreadFunc(void* arg) {
             pthread_mutex_lock(&gameMutex);
             pthread_cond_wait(&renderCond, &gameMutex);
             pthread_mutex_unlock(&gameMutex);
-            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);  // Color blanco para las paletas
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
             SDL_RenderFillRect(renderer, &leftPaddle.rect);
             SDL_RenderFillRect(renderer, &rightPaddle.rect);
             SDL_RenderFillRect(renderer, &global_ball.rect);
-        } else if (currentState == GAME_OVER){
-            if (mainMenuTexture) {
-                SDL_RenderCopy(renderer, mainMenuTexture, NULL, NULL);
+
+            SDL_Surface* surface;
+            SDL_Texture* texture;
+            SDL_Color textColor = {255, 255, 255, 255};
+
+            // Renderizar el puntaje del jugador 1
+            std::string player1ScoreText = std::to_string(player1Score);
+            surface = TTF_RenderText_Solid(font, player1ScoreText.c_str(), textColor);
+            texture = SDL_CreateTextureFromSurface(renderer, surface);
+            SDL_Rect player1ScoreRect = {SCREEN_WIDTH / 4 - surface->w / 2, 50, surface->w, surface->h};
+            SDL_RenderCopy(renderer, texture, NULL, &player1ScoreRect);
+            SDL_FreeSurface(surface);
+            SDL_DestroyTexture(texture);
+
+            // Renderizar el puntaje del jugador 2
+            std::string player2ScoreText = std::to_string(player2Score);
+            surface = TTF_RenderText_Solid(font, player2ScoreText.c_str(), textColor);
+            texture = SDL_CreateTextureFromSurface(renderer, surface);
+            SDL_Rect player2ScoreRect = {3 * SCREEN_WIDTH / 4 - surface->w / 2, 50, surface->w, surface->h};
+            SDL_RenderCopy(renderer, texture, NULL, &player2ScoreRect);
+            SDL_FreeSurface(surface);
+            SDL_DestroyTexture(texture);
+
+        } else if (currentState == GAME_OVER) {
+            if (gameOverTexture) {
+                SDL_RenderCopy(renderer, gameOverTexture, NULL, NULL);
             }
+
+            SDL_Surface* surface;
+            SDL_Texture* texture;
+            SDL_Color textColor = {255, 255, 255, 255};
+
+            // Renderizar el texto de juego (el jugador que gana)
+            std::string winnerText = "Gana el Jugador ";
+            std::string winnerStr = std::to_string(winner); // Assuming 'winner' is an int
+            std::string winnerRender = winnerText + winnerStr;
+
+            // Renderizar el texto del ganador
+            surface = TTF_RenderText_Solid(font, winnerRender.c_str(), textColor);
+            if (surface != nullptr) {
+                texture = SDL_CreateTextureFromSurface(renderer, surface);
+                if (texture != nullptr) {
+                    // Centrar el texto en la parte superior de la pantalla
+                    SDL_Rect winnerTextRect = {
+                        SCREEN_WIDTH / 2 - surface->w / 2,  // Center horizontally
+                        SCREEN_HEIGHT / 2 - surface->h / 2, // Center vertically
+                         surface->w, 
+                        surface->h};
+                    SDL_RenderCopy(renderer, texture, NULL, &winnerTextRect);
+                    SDL_DestroyTexture(texture);  // Destruir la textura después de usarla
+                }
+                SDL_FreeSurface(surface);  // Liberar la superficie después de usarla
+            }
+
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
         }
 
@@ -370,7 +455,7 @@ bool init(SDL_Window*& window, SDL_Renderer*& renderer) {
     }
 
     // Cargar la fuente
-    font = TTF_OpenFont("res/arial.ttf", 28);
+    font = TTF_OpenFont("res/ARCADECLASSIC.ttf", 72);
     if (!font) {
         std::cerr << "Failed to load font! TTF_Error: " << TTF_GetError() << std::endl;
         return false;
@@ -410,14 +495,23 @@ int main(int argc, char* argv[]) {
     if (!init(window, renderer)) {
         return -1;
     }
-    sem_init(&ballUpdateSem, 0, 0);   // Start with 0 because ball should wait initially
+    sem_init(&ballUpdateSem, 0, 0);
 
     mainMenuTexture = loadTexture("res/mainmenu.png", renderer);
     if (!mainMenuTexture) {
         close(window, renderer);
         return -1;
     }
-
+    gameOverTexture = loadTexture("res/gameover.png", renderer);
+    if (!gameOverTexture) {
+        close(window, renderer);
+        return -1;
+    }
+    settingsTexture = loadTexture("res/config.png", renderer);
+    if (!settingsTexture) {
+        close(window, renderer);
+        return -1;
+    }
     // Inicializar el mutex y la variable de condición
     pthread_mutex_init(&gameMutex, NULL);
     pthread_cond_init(&paddleUpdateCond, NULL);
