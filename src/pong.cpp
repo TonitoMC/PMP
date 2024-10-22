@@ -6,20 +6,26 @@
 #include <unistd.h>
 #include <semaphore.h>
 #include <SDL2/SDL_ttf.h>
-
+#include <cstdlib>
+#include <ctime>   // for time()
+#include <cmath>
 // Constantes de juego / variables globales
 const int SCREEN_WIDTH = 800;   // Ancho de la pantalla
 const int SCREEN_HEIGHT = 600;  // ALtura de la pantalla
 const int WALL_THICKNESS = 10;  // Ancho de las paredes
 const int PADDLE_HEIGHT = 100;  // Altura de las paletas
-const int BALL_SIZE = 15;       // Tamano de la pelota
-const int BALL_SPEED = 15;       // Velocidad de la pelota
+const int BALL_SIZE = 20;       // Tamano de la pelota
+int BALL_SPEED = 20;       // Velocidad de la pelota
 const int PADDLE_WIDTH = 20;    // Ancho de paleta
-int paddleSpeed = 1;            // Velocidad de paleta
+const int MAX_BALL_SPEED = 20;  // Velocidad Maxima de Pelota
+const int MIN_BALL_SPEED = 15;  // Velocidad Minima de Pelota
+const int MIN_PADDLE_SPEED = 5; // Velocidad Minima de Paleta
+const int MAX_PADDLE_SPEED = 8;    // Velocidad Maxima de Paleta
+int paddleSpeed = 8;            // Velocidad de paleta
 TTF_Font* font = nullptr;
 int player1Score;
 int player2Score;
-int winner = 1;
+int winner = 3;
 
 // Enumeración para diferentes estados de juego
 enum GameState {
@@ -99,7 +105,6 @@ Paddle rightPaddle = {rightPaddleRect, false, false};   // Estructura para almac
 void* playerPaddleFunc(void* arg) {
     Paddle* paddle = (Paddle*)arg;
     
-    //TODO actualizar a otra variable
     while (!quit) {
         /**
          * Espera a variable condicional señalizada desde el hilo de lógica de juego. De
@@ -128,6 +133,8 @@ void* playerPaddleFunc(void* arg) {
 // Funcion para manejar una paleta controlada por IA
 void* computerPaddleFunc(void* arg) {
     Paddle* paddle = (Paddle*)arg;
+        srand(time(NULL));
+
     while (!quit) {
         /**
          * Espera a variable condicional señalizada desde el hilo de lógica de juego. De
@@ -137,20 +144,19 @@ void* computerPaddleFunc(void* arg) {
         pthread_mutex_lock(&gameMutex);
         pthread_cond_wait(&paddleUpdateCond, &gameMutex);
         pthread_mutex_unlock(&gameMutex);
+        int speedVariation = (rand() % 3) - 1;  // Randomly -1, 0, or 1 to slightly adjust speed
 
         // Verifica el estado de la paleta y la posicion de la pelota, se mueve directamente
         // hacia la altura de la pelota respecto a la paleta
         if (global_ball.rect.y < paddle->rect.y && paddle->rect.y > WALL_THICKNESS){
-            paddle->rect.y -= paddleSpeed;
-}
+            paddle->rect.y -= paddleSpeed + speedVariation;
+        }
         if (global_ball.rect.y > paddle->rect.y + PADDLE_HEIGHT && paddle->rect.y + PADDLE_HEIGHT < SCREEN_HEIGHT - WALL_THICKNESS){
-            paddle->rect.y += paddleSpeed;
+            paddle->rect.y += paddleSpeed + speedVariation;
         }
         // Postea el semaforo de actualizacion de la pelota
-        // TODO revisar si se cambia a barrera
         sem_post(&ballUpdateSem);
                 if (quit) break;
-
     }
     return NULL;
 }
@@ -167,7 +173,6 @@ void* ballFunc(void* arg) {
     int* player2Score = ballData->player2Score;
 
     while (!quit) {
-
         // Actualizacion de Posicion, esto se puede realizar de manera independiente de los demas hilos
         ball->rect.x += ball->velX;
         ball->rect.y += ball->velY;
@@ -202,7 +207,14 @@ void* ballFunc(void* arg) {
 
                 // Ajustar velocidad vertical basado en donde golpea la paleta
                 int hitPos = (ball->rect.y + BALL_SIZE / 2) - (leftPaddle.rect.y + PADDLE_HEIGHT / 2);
-                ball->velY = hitPos / 10;  // Ajustar velocidad vertical
+                
+                // Aumentar la sensibilidad de la variación en velocidad vertical
+                ball->velY = hitPos / 5;  // Ajustar velocidad vertical (más grande para mayor impacto)
+
+                // Asegurarse de que la velocidad vertical no sea demasiado pequeña
+                if (ball->velY == 0) {
+                    ball->velY = (rand() % 2 == 0) ? 2 : -2;  // Añadir velocidad mínima
+                }
             }
         }
 
@@ -221,7 +233,14 @@ void* ballFunc(void* arg) {
 
                 // Ajustar velocidad vertical basado en donde golpea la paleta
                 int hitPos = (ball->rect.y + BALL_SIZE / 2) - (rightPaddle.rect.y + PADDLE_HEIGHT / 2);
-                ball->velY = hitPos / 10;  // Ajustar velocidad vertical
+                
+                // Aumentar la sensibilidad de la variación en velocidad vertical
+                ball->velY = hitPos / 5;  // Ajustar velocidad vertical (más grande para mayor impacto)
+
+                // Asegurarse de que la velocidad vertical no sea demasiado pequeña
+                if (ball->velY == 0) {
+                    ball->velY = (rand() % 2 == 0) ? 2 : -2;  // Añadir velocidad mínima
+                }
             }
         }
 
@@ -252,6 +271,7 @@ void* ballFunc(void* arg) {
     }
     return NULL;
 }
+
 
 
 
@@ -312,7 +332,7 @@ void* logicThreadFunc(void* arg) {
         // Señalar que las paletas deben actualizarse
         pthread_cond_broadcast(&paddleUpdateCond);
         pthread_mutex_unlock(&gameMutex);
-        if (player1Score >= 2){
+        if (player1Score >= 5){
             quit = true;
             break;
         }
@@ -421,11 +441,27 @@ void* renderThreadFunc(void* arg) {
             if (settingsTexture) {
                 SDL_RenderCopy(renderer, settingsTexture, NULL, NULL);
             }
+            SDL_Surface* surface;
+            SDL_Texture* texture;
+            SDL_Color textColor = {255, 255, 255, 255};
+            // Renderizar la variable de Paddle Speed
+            std::string paddleSpeedText = std::to_string(paddleSpeed);
+            surface = TTF_RenderText_Solid(font, paddleSpeedText.c_str(), textColor);
+            texture = SDL_CreateTextureFromSurface(renderer, surface);
+            SDL_Rect paddleSpeedRect = {SCREEN_WIDTH / 2 + 125, 370, surface->w, surface->h};
+            SDL_RenderCopy(renderer, texture, NULL, &paddleSpeedRect);
+            SDL_FreeSurface(surface);
+            SDL_DestroyTexture(texture);
+
+            // Renderizar la variable Ball Speed
+            std::string ballSpeedText = std::to_string(BALL_SPEED);
+            surface = TTF_RenderText_Solid(font, ballSpeedText.c_str(), textColor);
+            texture = SDL_CreateTextureFromSurface(renderer, surface);
+            SDL_Rect ballSpeedRect = {SCREEN_WIDTH / 2 + 125, 230, surface->w, surface->h};
+            SDL_RenderCopy(renderer, texture, NULL, &ballSpeedRect);
+            SDL_FreeSurface(surface);
+            SDL_DestroyTexture(texture);
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-            SDL_RenderFillRect(renderer, &lessBallSpeedButton);
-            SDL_RenderFillRect(renderer, &moreBallSpeedButton);
-            SDL_RenderFillRect(renderer, &lessPaddleSpeedButton);
-            SDL_RenderFillRect(renderer, &morePaddleSpeedButton);
         }
 
         // Actualizar el renderizado
@@ -579,6 +615,18 @@ int main(int argc, char* argv[]) {
                     ){
                     if (isInside(x, y, settingsButton)){
                         currentState = MAIN_MENU;
+                    }
+                    else if (isInside(x, y, lessPaddleSpeedButton) && paddleSpeed > MIN_PADDLE_SPEED){
+                        paddleSpeed--;
+                    }
+                    else if (isInside(x, y, morePaddleSpeedButton) && MAX_PADDLE_SPEED > paddleSpeed){
+                        paddleSpeed++;
+                    }
+                    else if (isInside(x, y, lessBallSpeedButton) && BALL_SPEED > MIN_BALL_SPEED){
+                        BALL_SPEED--;
+                    }
+                    else if (isInside(x, y, moreBallSpeedButton) && MAX_BALL_SPEED > BALL_SPEED){
+                        BALL_SPEED++;
                     }
                 }
             }
