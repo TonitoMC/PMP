@@ -297,7 +297,8 @@ void* logicThreadFunc(void* arg) {
     pthread_t leftPaddleThread, rightPaddleThread, ballThread;
     player1Score = 0;
     player2Score = 0;
-
+    rightPaddle.rect = { SCREEN_WIDTH - 70, SCREEN_HEIGHT / 2 - 50, 20, 100 };
+    leftPaddle.rect = { 50, SCREEN_HEIGHT / 2 - 50, 20, 100 };
     BallData ballData = BallData{&global_ball, &player1Score, &player2Score};
 
     // Si la modalidad de juego es de un unico jugador, crea un hilo de jugador
