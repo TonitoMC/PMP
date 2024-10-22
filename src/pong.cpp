@@ -20,6 +20,7 @@ TTF_Font* font = nullptr;
 int player1Score;
 int player2Score;
 int winner = 1;
+
 // Enumeración para diferentes estados de juego
 enum GameState {
     MAIN_MENU,      // Menu Principal
@@ -46,6 +47,10 @@ SDL_Rect singlePlayerButton = { 175, 210, 450, 75 };
 SDL_Rect twoPlayerButton = { 125, 310, 560, 75 };
 SDL_Rect simulationButton = { 125, 400, 560, 75 };
 SDL_Rect settingsButton = { 660, 45, 95, 95 };
+SDL_Rect lessBallSpeedButton = {300, 245, 50, 50};
+SDL_Rect moreBallSpeedButton = {445, 245, 50, 50};
+SDL_Rect lessPaddleSpeedButton = {300, 385, 50, 50};
+SDL_Rect morePaddleSpeedButton = {445, 385, 50, 50};
 
 // Variables para sincronización de hilos
 pthread_mutex_t gameMutex;          // Mutex
@@ -354,7 +359,10 @@ void* renderThreadFunc(void* arg) {
             SDL_RenderFillRect(renderer, &leftPaddle.rect);
             SDL_RenderFillRect(renderer, &rightPaddle.rect);
             SDL_RenderFillRect(renderer, &global_ball.rect);
-
+            for (int y = 0; y < SCREEN_HEIGHT; y += 40) {
+                SDL_Rect netSegment = {SCREEN_WIDTH / 2 - 1, y, 2, 20}; // Segmentos de la red
+                SDL_RenderFillRect(renderer, &netSegment);
+            }
             SDL_Surface* surface;
             SDL_Texture* texture;
             SDL_Color textColor = {255, 255, 255, 255};
@@ -398,7 +406,7 @@ void* renderThreadFunc(void* arg) {
                 if (texture != nullptr) {
                     // Centrar el texto en la parte superior de la pantalla
                     SDL_Rect winnerTextRect = {
-                        SCREEN_WIDTH / 2 - surface->w / 2,  // Center horizontally
+                        SCREEN_WIDTH / 2 - surface->w / 2 + 15,  // Center horizontally
                         SCREEN_HEIGHT / 2 - surface->h / 2, // Center vertically
                          surface->w, 
                         surface->h};
@@ -409,6 +417,15 @@ void* renderThreadFunc(void* arg) {
             }
 
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+        } else if (currentState == SETTINGS) {
+            if (settingsTexture) {
+                SDL_RenderCopy(renderer, settingsTexture, NULL, NULL);
+            }
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+            SDL_RenderFillRect(renderer, &lessBallSpeedButton);
+            SDL_RenderFillRect(renderer, &moreBallSpeedButton);
+            SDL_RenderFillRect(renderer, &lessPaddleSpeedButton);
+            SDL_RenderFillRect(renderer, &morePaddleSpeedButton);
         }
 
         // Actualizar el renderizado
@@ -549,11 +566,20 @@ int main(int argc, char* argv[]) {
                         currentState = SIMULATION;
                         pthread_create(&gameLogicThread, NULL, logicThreadFunc, NULL);
                     }
+                    if (isInside(x, y, settingsButton)){
+                        currentState = SETTINGS;
+                    }
                 }
-                if (currentState == GAME_OVER) {
+                else if (currentState == GAME_OVER) {
                     pthread_join(gameLogicThread, NULL);
                     quit = false;
                     currentState = MAIN_MENU;
+                }
+                else if (currentState == SETTINGS 
+                    ){
+                    if (isInside(x, y, settingsButton)){
+                        currentState = MAIN_MENU;
+                    }
                 }
             }
         }
