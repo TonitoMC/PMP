@@ -10,19 +10,19 @@
 #include <ctime>   // for time()
 #include <cmath>
 // Constantes de juego / variables globales
-const int SCREEN_WIDTH = 800;   // Ancho de la pantalla
-const int SCREEN_HEIGHT = 600;  // ALtura de la pantalla
-const int WALL_THICKNESS = 10;  // Ancho de las paredes
-const int PADDLE_HEIGHT = 100;  // Altura de las paletas
-const int BALL_SIZE = 20;       // Tamano de la pelota
-int BALL_SPEED = 20;       // Velocidad de la pelota
-const int PADDLE_WIDTH = 20;    // Ancho de paleta
-const int MAX_BALL_SPEED = 20;  // Velocidad Maxima de Pelota
-const int MIN_BALL_SPEED = 15;  // Velocidad Minima de Pelota
-const int MIN_PADDLE_SPEED = 5; // Velocidad Minima de Paleta
+const int SCREEN_WIDTH = 800;       // Ancho de la pantalla
+const int SCREEN_HEIGHT = 600;      // ALtura de la pantalla
+const int WALL_THICKNESS = 10;      // Ancho de las paredes
+const int PADDLE_HEIGHT = 100;      // Altura de las paletas
+const int BALL_SIZE = 20;           // Tamano de la pelota
+int BALL_SPEED = 15;                // Velocidad de la pelota
+const int PADDLE_WIDTH = 20;        // Ancho de paleta
+const int MAX_BALL_SPEED = 20;      // Velocidad Maxima de Pelota
+const int MIN_BALL_SPEED = 15;      // Velocidad Minima de Pelota
+const int MIN_PADDLE_SPEED = 5;     // Velocidad Minima de Paleta
 const int MAX_PADDLE_SPEED = 8;    // Velocidad Maxima de Paleta
 const int WINNING_SCORE = 10;
-int paddleSpeed = 8;            // Velocidad de paleta
+int paddleSpeed = 7;              // Velocidad de paleta
 TTF_Font* font = nullptr;
 int player1Score;
 int player2Score;
@@ -160,7 +160,7 @@ void* computerPaddleFunc(void* arg) {
     }
     return NULL;
 }
-// Check if the ball is within the paddle's height range
+// Revisa si la pelota se encuentra dentro de la altura de la paleta
 bool isBallWithinPaddleHeight(int ballY, int ballSize, int paddleY, int paddleHeight) {
     return ballY + ballSize >= paddleY && ballY <= paddleY + paddleHeight;
 }
@@ -273,9 +273,6 @@ void* ballFunc(void* arg) {
 }
 
 
-
-
-
 // Función de lógica del juego
 void* logicThreadFunc(void* arg) {
     /**
@@ -355,121 +352,109 @@ void* logicThreadFunc(void* arg) {
 
 // Rutina del hilo de renderizado
 void* renderThreadFunc(void* arg) {
-    while (currentState != QUIT) {
+    SDL_Color textColor = {255, 255, 255, 255};  // Color blanco común para todo el texto
 
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    while (currentState != QUIT) {
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Color de fondo
         SDL_RenderClear(renderer);
 
-        // Render basado en el estado del juego
+        // Renderizado según el estado del juego
         if (currentState == MAIN_MENU) {
             if (mainMenuTexture) {
                 SDL_RenderCopy(renderer, mainMenuTexture, NULL, NULL);
             }
-            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-
         } else if (currentState == SINGLE_PLAYER || currentState == TWO_PLAYER || currentState == SIMULATION) {
             // Limpia la pantalla del renderer
             pthread_mutex_lock(&gameMutex);
             pthread_cond_wait(&renderCond, &gameMutex);
             pthread_mutex_unlock(&gameMutex);
-            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+
+            // Render paletas y pelota
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);  // Color blanco para las paletas y la pelota
             SDL_RenderFillRect(renderer, &leftPaddle.rect);
             SDL_RenderFillRect(renderer, &rightPaddle.rect);
             SDL_RenderFillRect(renderer, &global_ball.rect);
+
+            // Render de la red
             for (int y = 0; y < SCREEN_HEIGHT; y += 40) {
-                SDL_Rect netSegment = {SCREEN_WIDTH / 2 - 1, y, 2, 20}; // Segmentos de la red
+                SDL_Rect netSegment = {SCREEN_WIDTH / 2 - 1, y, 2, 20};
                 SDL_RenderFillRect(renderer, &netSegment);
             }
-            SDL_Surface* surface;
-            SDL_Texture* texture;
-            SDL_Color textColor = {255, 255, 255, 255};
 
             // Renderizar el puntaje del jugador 1
             std::string player1ScoreText = std::to_string(player1Score);
-            surface = TTF_RenderText_Solid(font, player1ScoreText.c_str(), textColor);
-            texture = SDL_CreateTextureFromSurface(renderer, surface);
-            SDL_Rect player1ScoreRect = {SCREEN_WIDTH / 4 - surface->w / 2, 50, surface->w, surface->h};
-            SDL_RenderCopy(renderer, texture, NULL, &player1ScoreRect);
-            SDL_FreeSurface(surface);
-            SDL_DestroyTexture(texture);
+            SDL_Surface* surface = TTF_RenderText_Solid(font, player1ScoreText.c_str(), textColor);
+            if (surface) {
+                SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+                SDL_Rect player1ScoreRect = {SCREEN_WIDTH / 4 - surface->w / 2, 50, surface->w, surface->h};
+                SDL_RenderCopy(renderer, texture, NULL, &player1ScoreRect);
+                SDL_FreeSurface(surface);
+                SDL_DestroyTexture(texture);
+            }
 
             // Renderizar el puntaje del jugador 2
             std::string player2ScoreText = std::to_string(player2Score);
             surface = TTF_RenderText_Solid(font, player2ScoreText.c_str(), textColor);
-            texture = SDL_CreateTextureFromSurface(renderer, surface);
-            SDL_Rect player2ScoreRect = {3 * SCREEN_WIDTH / 4 - surface->w / 2, 50, surface->w, surface->h};
-            SDL_RenderCopy(renderer, texture, NULL, &player2ScoreRect);
-            SDL_FreeSurface(surface);
-            SDL_DestroyTexture(texture);
+            if (surface) {
+                SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+                SDL_Rect player2ScoreRect = {3 * SCREEN_WIDTH / 4 - surface->w / 2, 50, surface->w, surface->h};
+                SDL_RenderCopy(renderer, texture, NULL, &player2ScoreRect);
+                SDL_FreeSurface(surface);
+                SDL_DestroyTexture(texture);
+            }
 
         } else if (currentState == GAME_OVER) {
             if (gameOverTexture) {
                 SDL_RenderCopy(renderer, gameOverTexture, NULL, NULL);
             }
 
-            SDL_Surface* surface;
-            SDL_Texture* texture;
-            SDL_Color textColor = {255, 255, 255, 255};
-
-            // Renderizar el texto de juego (el jugador que gana)
-            std::string winnerText = "Gana el Jugador ";
-            std::string winnerStr = std::to_string(winner); // Assuming 'winner' is an int
-            std::string winnerRender = winnerText + winnerStr;
-
             // Renderizar el texto del ganador
-            surface = TTF_RenderText_Solid(font, winnerRender.c_str(), textColor);
-            if (surface != nullptr) {
-                texture = SDL_CreateTextureFromSurface(renderer, surface);
-                if (texture != nullptr) {
-                    // Centrar el texto en la parte superior de la pantalla
-                    SDL_Rect winnerTextRect = {
-                        SCREEN_WIDTH / 2 - surface->w / 2 + 15,  // Center horizontally
-                        SCREEN_HEIGHT / 2 - surface->h / 2, // Center vertically
-                         surface->w, 
-                        surface->h};
-                    SDL_RenderCopy(renderer, texture, NULL, &winnerTextRect);
-                    SDL_DestroyTexture(texture);  // Destruir la textura después de usarla
-                }
-                SDL_FreeSurface(surface);  // Liberar la superficie después de usarla
+            std::string winnerText = "Gana el Jugador " + std::to_string(winner);
+            SDL_Surface* surface = TTF_RenderText_Solid(font, winnerText.c_str(), textColor);
+            if (surface) {
+                SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+                SDL_Rect winnerTextRect = {SCREEN_WIDTH / 2 - surface->w / 2 + 15, SCREEN_HEIGHT / 2 - surface->h / 2, surface->w, surface->h};
+                SDL_RenderCopy(renderer, texture, NULL, &winnerTextRect);
+                SDL_FreeSurface(surface);
+                SDL_DestroyTexture(texture);
             }
 
-            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
         } else if (currentState == SETTINGS) {
             if (settingsTexture) {
                 SDL_RenderCopy(renderer, settingsTexture, NULL, NULL);
             }
-            SDL_Surface* surface;
-            SDL_Texture* texture;
-            SDL_Color textColor = {255, 255, 255, 255};
+
             // Renderizar la variable de Paddle Speed
             std::string paddleSpeedText = std::to_string(paddleSpeed);
-            surface = TTF_RenderText_Solid(font, paddleSpeedText.c_str(), textColor);
-            texture = SDL_CreateTextureFromSurface(renderer, surface);
-            SDL_Rect paddleSpeedRect = {SCREEN_WIDTH / 2 + 125, 370, surface->w, surface->h};
-            SDL_RenderCopy(renderer, texture, NULL, &paddleSpeedRect);
-            SDL_FreeSurface(surface);
-            SDL_DestroyTexture(texture);
+            SDL_Surface* surface = TTF_RenderText_Solid(font, paddleSpeedText.c_str(), textColor);
+            if (surface) {
+                SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+                SDL_Rect paddleSpeedRect = {SCREEN_WIDTH / 2 + 125, 370, surface->w, surface->h};
+                SDL_RenderCopy(renderer, texture, NULL, &paddleSpeedRect);
+                SDL_FreeSurface(surface);
+                SDL_DestroyTexture(texture);
+            }
 
             // Renderizar la variable Ball Speed
             std::string ballSpeedText = std::to_string(BALL_SPEED);
             surface = TTF_RenderText_Solid(font, ballSpeedText.c_str(), textColor);
-            texture = SDL_CreateTextureFromSurface(renderer, surface);
-            SDL_Rect ballSpeedRect = {SCREEN_WIDTH / 2 + 125, 230, surface->w, surface->h};
-            SDL_RenderCopy(renderer, texture, NULL, &ballSpeedRect);
-            SDL_FreeSurface(surface);
-            SDL_DestroyTexture(texture);
-            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+            if (surface) {
+                SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+                SDL_Rect ballSpeedRect = {SCREEN_WIDTH / 2 + 125, 230, surface->w, surface->h};
+                SDL_RenderCopy(renderer, texture, NULL, &ballSpeedRect);
+                SDL_FreeSurface(surface);
+                SDL_DestroyTexture(texture);
+            }
         }
 
         // Actualizar el renderizado
         SDL_RenderPresent(renderer);
-
-        // Control de framerate
-        SDL_Delay(16);
+        SDL_Delay(16);  // Aproximadamente 60 FPS
     }
 
     return nullptr;
 }
+
 
 // Función para comprobar si el mouse está dentro de un botón
 bool isInside(int x, int y, SDL_Rect buttonRect) {
