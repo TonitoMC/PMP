@@ -9,6 +9,8 @@
 #include <cstdlib>
 #include <ctime>
 #include <cmath>
+#include <cstdlib>  // For rand()
+
 // Constantes de juego / variables globales
 const int SCREEN_WIDTH = 800;       // Ancho de la pantalla
 const int SCREEN_HEIGHT = 600;      // ALtura de la pantalla
@@ -22,6 +24,7 @@ const int MIN_BALL_SPEED = 15;      // Velocidad Minima de Pelota
 const int MIN_PADDLE_SPEED = 5;     // Velocidad Minima de Paleta
 const int MAX_PADDLE_SPEED = 8;    // Velocidad Maxima de Paleta
 const int WINNING_SCORE = 10;
+const double MAX_ANGLE = 0.8;
 int paddleSpeed = 7;              // Velocidad de paleta
 TTF_Font* font = nullptr;
 int player1Score;
@@ -75,7 +78,7 @@ struct Paddle {
 // Estructura para representar la pelota
 struct Ball {
     SDL_Rect rect;      // El rectangulo para dibujar en SDL
-    int velX, velY;     // Representa la velocidad en cada coordenada de la pelota
+    double velX, velY;     // Representa la velocidad en cada coordenada de la pelota
 };
 
 // Estructura para almacenar informacion sobre la pelota, dentro del hilo que controla la pelota se modifican puntajes
@@ -86,11 +89,11 @@ struct BallData {
 };
 
 // Pelota global, se necesita acceder desde diferentes hilos
-Ball global_ball = {{SCREEN_WIDTH / 2 - BALL_SIZE / 2, SCREEN_HEIGHT / 2 - BALL_SIZE / 2, BALL_SIZE, BALL_SIZE}, BALL_SPEED, BALL_SPEED};
+Ball global_ball = {{SCREEN_WIDTH / 2 - BALL_SIZE / 2, SCREEN_HEIGHT / 2 - BALL_SIZE / 2, BALL_SIZE, BALL_SIZE}, cos(0.785398) * BALL_SPEED, sin(0.785398) * BALL_SPEED};
 
 
 // Variable para controlar la finalización del juego
-std::atomic<bool> quit = false;
+std::atomic<bool> quit{false};
 
 // Paleta Izquierda
 SDL_Rect leftPaddleRect = { 50, SCREEN_HEIGHT / 2 - 50, 20, 100 }; // Rectangulo de SDL
@@ -156,10 +159,11 @@ void* computerPaddleFunc(void* arg) {
         }
         // Postea el semaforo de actualizacion de la pelota
         sem_post(&ballUpdateSem);
-                if (quit) break;
+        if (quit) break;
     }
     return NULL;
 }
+
 // Revisa si la pelota se encuentra dentro de la altura de la paleta
 bool isBallWithinPaddleHeight(int ballY, int ballSize, int paddleY, int paddleHeight) {
     return ballY + ballSize >= paddleY && ballY <= paddleY + paddleHeight;
@@ -202,19 +206,18 @@ void* ballFunc(void* arg) {
                 // Evitar que la pelota se sobreponga en la paleta
                 ball->rect.x = leftPaddle.rect.x + PADDLE_WIDTH;
 
-                // Invertir dirección horizontal
-                ball->velX = -ball->velX;
 
                 // Ajustar velocidad vertical basado en donde golpea la paleta
+                // Punto Contacto - Centro
                 int hitPos = (ball->rect.y + BALL_SIZE / 2) - (leftPaddle.rect.y + PADDLE_HEIGHT / 2);
-                
-                // Aumentar la sensibilidad de la variación en velocidad vertical
-                ball->velY = hitPos / 5;  // Ajustar velocidad vertical (más grande para mayor impacto)
 
-                // Asegurarse de que la velocidad vertical no sea demasiado pequeña
-                if (ball->velY == 0) {
-                    ball->velY = (rand() % 2 == 0) ? 2 : -2;  // Añadir velocidad mínima
-                }
+                float normalizedHitPos = static_cast<float>(hitPos) / (PADDLE_HEIGHT / 2);
+
+                double bounceAngle = normalizedHitPos * MAX_ANGLE;
+                // TODO NORMALIZEDHITPOS COULD BE BADLY CALCULATE SET A MAX TO IT.
+                ball->velX = fabs(cos(bounceAngle) * BALL_SPEED);
+                ball->velY = sin(bounceAngle) * BALL_SPEED;
+
             }
         }
 
@@ -226,23 +229,21 @@ void* ballFunc(void* arg) {
                 ball->rect.y <= rightPaddle.rect.y + PADDLE_HEIGHT) {
 
                 // Evitar que la pelota se sobreponga en la paleta
-                ball->rect.x = rightPaddle.rect.x - BALL_SIZE;
-
-                // Invertir dirección horizontal
-                ball->velX = -ball->velX;
+                ball->rect.x = rightPaddle.rect.x  - PADDLE_WIDTH;
 
                 // Ajustar velocidad vertical basado en donde golpea la paleta
+                // Punto Contacto - Centro
                 int hitPos = (ball->rect.y + BALL_SIZE / 2) - (rightPaddle.rect.y + PADDLE_HEIGHT / 2);
-                
-                // Aumentar la sensibilidad de la variación en velocidad vertical
-                ball->velY = hitPos / 5;  // Ajustar velocidad vertical (más grande para mayor impacto)
 
-                // Asegurarse de que la velocidad vertical no sea demasiado pequeña
-                if (ball->velY == 0) {
-                    ball->velY = (rand() % 2 == 0) ? 2 : -2;  // Añadir velocidad mínima
-                }
+                float normalizedHitPos = static_cast<float>(hitPos) / (PADDLE_HEIGHT / 2);
+
+                double bounceAngle = normalizedHitPos * MAX_ANGLE;
+
+                ball->velX = -fabs(cos(bounceAngle) * BALL_SPEED); 
+                ball->velY = sin(bounceAngle) * BALL_SPEED;
             }
         }
+
 
         // Manejo de la puntuacion
         if (ball->rect.x < 0) {
@@ -251,17 +252,27 @@ void* ballFunc(void* arg) {
             // Reiniciar la pelota
             ball->rect.x = SCREEN_WIDTH / 2 - BALL_SIZE / 2;
             ball->rect.y = SCREEN_HEIGHT / 2 - BALL_SIZE / 2;
-            ball->velX = BALL_SPEED;
-            ball->velY = BALL_SPEED;
+
+            double angle = 0.785398; 
+
+            // Randomly choose the sign of velX and velY
+            ball->velX = ((rand() % 2 == 0) ? 1 : -1) * cos(angle) * BALL_SPEED;
+            ball->velY = ((rand() % 2 == 0) ? 1 : -1) * sin(angle) * BALL_SPEED;
         }
+
         if (ball->rect.x > SCREEN_WIDTH) {
             // Puntaje para jugador 1
             (*player1Score)++;
             // Reiniciar la pelota
             ball->rect.x = SCREEN_WIDTH / 2 - BALL_SIZE / 2;
             ball->rect.y = SCREEN_HEIGHT / 2 - BALL_SIZE / 2;
-            ball->velX = -BALL_SPEED;
-            ball->velY = BALL_SPEED;
+
+
+            double angle = 0.785398; 
+
+            // Randomly choose the sign of velX and velY
+            ball->velX = ((rand() % 2 == 0) ? 1 : -1) * cos(angle) * BALL_SPEED;
+            ball->velY = ((rand() % 2 == 0) ? 1 : -1) * sin(angle) * BALL_SPEED;
         }
 
         // Desbloquear el Mutex de juego y señalar al hilo de renderizado que el juego está actualizado
@@ -271,6 +282,7 @@ void* ballFunc(void* arg) {
     }
     return NULL;
 }
+
 
 
 // Función de lógica del juego
